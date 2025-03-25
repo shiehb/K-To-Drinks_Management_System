@@ -69,6 +69,10 @@ CSRF_TRUSTED_ORIGINS = [
     'https://k-to-drinks-management-system.onrender.com',
 ]
 
+CORS_ALLOWED_ORIGINS += [
+    "https://your-site-name.netlify.app",
+]
+
 
 
 ROOT_URLCONF = 'user_management.urls'
