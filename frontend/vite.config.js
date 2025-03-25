@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
     open: true,
     proxy: mode === 'development' ? {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'https://k-to-drinks-management-system.onrender.com',
         changeOrigin: true,
       },
     } : undefined,
