@@ -8,9 +8,12 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
+
+
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +28,7 @@ SECRET_KEY = 'django-insecure-6(huu*35e%7e0g2rvxg-x$e2hhbtrk7c7&aq3_w$8ks^-m-nu+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -52,15 +55,15 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
+# CORS Configuration
 INSTALLED_APPS += ['corsheaders']
 MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 
-# Allow Vite Frontend (Adjust port if needed)
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',  # Vite default port
+    'http://localhost:5173',  # Vite Frontend
 ]
-
 CORS_ALLOW_CREDENTIALS = True
+
 
 ROOT_URLCONF = 'user_management.urls'
 
@@ -84,10 +87,12 @@ WSGI_APPLICATION = 'user_management.wsgi.application'
 
 
 
+# Static Files for Vite
+VITE_BUILD_DIR = os.path.join(BASE_DIR, 'frontend', 'dist')
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [VITE_BUILD_DIR]
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -95,6 +100,14 @@ DATABASES = {
     }
 }
 
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
