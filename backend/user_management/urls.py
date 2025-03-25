@@ -16,8 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import routers
+from local_stores import views as store_views
+
+# Create a router if you're using DRF viewsets
+router = routers.DefaultRouter()
+router.register(r'stores', store_views.StoreViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('users.urls')),
+    path('api/', include('users.urls')),      # User authentication routes
+    
+    # Store management routes - choose one approach below
+    
+    # Option 1: Using include with local_stores.urls
+    path('api/', include('local_stores.urls')),
+    
 ]

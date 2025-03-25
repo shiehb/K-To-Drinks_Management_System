@@ -1,48 +1,41 @@
-// LocalStorePage.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import "../css/localstore.css";
 import LeafletMapPopup from "../components/LeafletMapPopup";
+import { toast } from "react-toastify";
 
+const API_URL = 'http://127.0.0.1:8000/api';
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DEFAULT_LAT = 16.63614047965268;
+const DEFAULT_LNG = 120.31339285476308;
 
-const initialData = [
-  { 
-    id: 1, 
-    name: "Saint Louis College La Union", 
-    location: "Supplier ti coke ni sir FJ", 
-    lat: 16.6369502, 
-    lng: 120.3131961, 
-    day: "Monday",
-    owner_name: "Juan Dela Cruz",
-    email: "juan@example.com",
-    number: "09123456789"
+const toastConfig = {
+  position: "top-right",
+  autoClose: 5000,
+  hideProgressBar: false,
+  pauseOnHover: true,
+  draggable: true,
+  style: {
+    backgroundColor: '#fff1f1',
+    color: '#007aad',
   },
-  { 
-    id: 2, 
-    name: "McDonald's SLC La Union", 
-    location: "Fast Food Restaurant", 
-    lat: 16.63555453298626, 
-    lng: 120.31237436524712, 
-    day: "Tuesday",
-    owner_name: "Maria Santos",
-    email: "maria@example.com",
-    number: "09234567890"
-  }
-];
+};
 
 export default function LocalStorePage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [externalLocation, setExternalLocation] = useState(null);
-  const [markerPosition, setMarkerPosition] = useState({ lat: null, lng: null });
+  const [markerPosition, setMarkerPosition] = useState({ 
+    lat: DEFAULT_LAT, 
+    lng: DEFAULT_LNG 
+  });
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState([]);
   const [formData, setFormData] = useState({ 
     name: "", 
     location: "", 
-    lat: "", 
-    lng: "", 
+    lat: DEFAULT_LAT, 
+    lng: DEFAULT_LNG, 
     owner_name: "", 
     email: "", 
     number: "",
@@ -52,7 +45,29 @@ export default function LocalStorePage() {
   const [routeOrder, setRouteOrder] = useState([]);
   const [showReorderButtons, setShowReorderButtons] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+
+  const fetchStores = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/stores/`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const stores = await response.json();
+      setData(Array.isArray(stores) ? stores : []);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      toast.error("Failed to load stores. Please try again.", toastConfig);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStores();
+  }, []);
 
   useEffect(() => {
     const initUserLocation = async () => {
@@ -62,17 +77,19 @@ export default function LocalStorePage() {
             navigator.geolocation.getCurrentPosition(resolve, reject);
           });
           const { latitude, longitude } = position.coords;
-          setMarkerPosition({ lat: latitude, lng: longitude });
-          setFormData(prev => ({ ...prev, lat: latitude, lng: longitude }));
+          const lat = latitude || DEFAULT_LAT;
+          const lng = longitude || DEFAULT_LNG;
+          
+          setMarkerPosition({ lat, lng });
+          setFormData(prev => ({ ...prev, lat, lng }));
         } else {
           throw new Error("Geolocation not supported");
         }
       } catch (err) {
         console.error("Location error:", err);
-        setError("Unable to retrieve your location. Using default location.");
-        const defaultPos = { lat: 16.6369502, lng: 120.3131961 };
-        setMarkerPosition(defaultPos);
-        setFormData(prev => ({ ...prev, lat: defaultPos.lat, lng: defaultPos.lng }));
+        toast.error("Unable to retrieve your location. Using default location.", toastConfig);
+        setMarkerPosition({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
+        setFormData(prev => ({ ...prev, lat: DEFAULT_LAT, lng: DEFAULT_LNG }));
       }
     };
 
@@ -82,7 +99,9 @@ export default function LocalStorePage() {
   useEffect(() => {
     const filtered = data.filter(item => 
       item.day === selectedDay &&
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       item.owner_name.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     setRouteOrder(filtered.map((_, index) => index));
   }, [selectedDay, searchQuery, data]);
@@ -94,10 +113,21 @@ export default function LocalStorePage() {
 
   const filteredDataBySearch = useMemo(() => 
     filteredDataByDay.filter(item =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.owner_name.toLowerCase().includes(searchQuery.toLowerCase())
     ),
     [filteredDataByDay, searchQuery]
   );
+
+  const handleMarkerPositionChange = (lat, lng) => {
+    if (isCreateMode || isEditMode) {
+      const newLat = lat || DEFAULT_LAT;
+      const newLng = lng || DEFAULT_LNG;
+      setMarkerPosition({ lat: newLat, lng: newLng });
+      setFormData(prev => ({ ...prev, lat: newLat, lng: newLng }));
+    }
+  };
 
   const handleRowClick = (item) => {
     setSelectedItem(item);
@@ -114,8 +144,8 @@ export default function LocalStorePage() {
     setFormData({ 
       name: "", 
       location: "", 
-      lat: "", 
-      lng: "", 
+      lat: markerPosition.lat, 
+      lng: markerPosition.lng, 
       owner_name: "", 
       email: "", 
       number: "",
@@ -124,7 +154,7 @@ export default function LocalStorePage() {
   };
 
   const handleSearch = async (e) => {
-    const query = e.target.value.toLowerCase();
+    const query = e.target.value;
     setSearchQuery(query);
 
     if (query === "") {
@@ -135,7 +165,9 @@ export default function LocalStorePage() {
 
     try {
       const foundItem = data.find(item =>
-        item.name.toLowerCase().includes(query)
+        item.name.toLowerCase().includes(query.toLowerCase()) ||
+        item.location.toLowerCase().includes(query.toLowerCase()) ||
+        item.owner_name.toLowerCase().includes(query.toLowerCase())
       );
 
       if (foundItem) {
@@ -171,24 +203,17 @@ export default function LocalStorePage() {
       }
     } catch (err) {
       console.error("Search error:", err);
-      setError("Failed to search location. Please try again.");
+      toast.error("Failed to search location. Please try again.", toastConfig);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMarkerPositionChange = (lat, lng) => {
-    if (isCreateMode || isEditMode) {
-      setMarkerPosition({ lat, lng });
-      setFormData(prev => ({ ...prev, lat, lng }));
-    }
-  };
-
   const handleCreateNewData = () => {
     setIsCreateMode(true);
+    setIsEditMode(false);
     setSelectedItem(null);
     setExternalLocation(null);
-    setIsEditMode(false);
     setFormData({ 
       name: "", 
       location: "", 
@@ -203,9 +228,9 @@ export default function LocalStorePage() {
 
   const handleEditLocation = (item) => {
     setIsEditMode(true);
+    setIsCreateMode(false);
     setSelectedItem(item);
     setExternalLocation(null);
-    setIsCreateMode(false);
     setFormData({ 
       name: item.name, 
       location: item.location, 
@@ -229,49 +254,95 @@ export default function LocalStorePage() {
     const missingFields = requiredFields.filter(field => !formData[field]);
     
     if (missingFields.length > 0) {
-      setError(`Missing required fields: ${missingFields.join(', ')}`);
+      toast.error(`Missing required fields: ${missingFields.join(', ')}`, toastConfig);
+      return false;
+    }
+
+    if (isNaN(formData.lat) || isNaN(formData.lng)) {
+      toast.error("Coordinates must be valid numbers", toastConfig);
       return false;
     }
 
     if (formData.lat < -90 || formData.lat > 90 || formData.lng < -180 || formData.lng > 180) {
-      setError("Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.");
+      toast.error("Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.", toastConfig);
       return false;
     }
 
     if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
-      setError("Please enter a valid email address.");
+      toast.error("Please enter a valid email address.", toastConfig);
       return false;
     }
 
-    setError(null);
+    if (!/^[0-9+]+$/.test(formData.number)) {
+      toast.error("Contact number should contain only numbers and + sign", toastConfig);
+      return false;
+    }
+
     return true;
   };
 
-  const handleSaveNewData = () => {
+  const handleSaveNewData = async () => {
     if (!validateForm()) return;
 
     try {
-      if (isCreateMode) {
-        const newItem = {
-          id: Math.max(...data.map(item => item.id), 0) + 1,
+      setIsLoading(true);
+      let url, method;
+      
+      if (isEditMode) {
+        url = `${API_URL}/stores/${selectedItem.id}/`;
+        method = "PUT";
+      } else {
+        url = `${API_URL}/stores/`;
+        method = "POST";
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           ...formData,
           lat: parseFloat(formData.lat),
           lng: parseFloat(formData.lng)
-        };
-        setData([...data, newItem]);
-      } else if (isEditMode) {
-        const updatedData = data.map(item =>
-          item.id === selectedItem.id
-            ? { ...item, ...formData, lat: parseFloat(formData.lat), lng: parseFloat(formData.lng) }
-            : item
-        );
-        setData(updatedData);
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to save store");
       }
 
+      await fetchStores();
       handleClosePopup();
+      toast.success(`Store ${isEditMode ? "updated" : "created"} successfully!`, toastConfig);
     } catch (err) {
       console.error("Save error:", err);
-      setError("Failed to save data. Please try again.");
+      toast.error(`Failed to save store: ${err.message}`, toastConfig);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteStore = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this store?")) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/stores/${id}/`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete store");
+      }
+
+      await fetchStores();
+      toast.success("Store deleted successfully!", toastConfig);
+      handleClosePopup();
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error(`Failed to delete store: ${err.message}`, toastConfig);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -295,14 +366,16 @@ export default function LocalStorePage() {
     setShowReorderButtons(!showReorderButtons);
   };
 
+  const formatCoordinate = (coord) => {
+    return typeof coord === 'number' ? coord.toFixed(6) : 'N/A';
+  };
+
   return (
     <div className="local-store-page">
-      {error && <div className="error-message">{error}</div>}
-
       <div className="search-controls">
         <input
           type="text"
-          placeholder="Search for a location..."
+          placeholder="Search by name, location or owner..."
           value={searchQuery}
           onChange={handleSearch}
           aria-label="Search for a location"
@@ -312,8 +385,9 @@ export default function LocalStorePage() {
           onClick={handleCreateNewData} 
           className="create-btn"
           aria-label="Create new location"
+          disabled={isLoading}
         >
-          {isLoading ? "Loading..." : "Create New Location"}
+          {isLoading ? "Loading..." : "Create New Store"}
         </button>
       </div>
 
@@ -321,7 +395,6 @@ export default function LocalStorePage() {
         selectedItem && !isEditMode ? "view-mode" : 
         isCreateMode || isEditMode ? "form-mode" : ""
       }`}>
-        {/* LEFT COLUMN - TABLE (hidden in edit/create mode) */}
         <div className="table-section">
           <div className="table-controls">
             <div className="day-filter">
@@ -360,7 +433,11 @@ export default function LocalStorePage() {
                   routeOrder.map((orderIndex, index) => {
                     const item = filteredDataBySearch[orderIndex];
                     return (
-                      <tr key={item.id} onClick={() => handleRowClick(item)}>
+                      <tr 
+                        key={item.id} 
+                        onClick={() => handleRowClick(item)}
+                        className={selectedItem?.id === item.id ? "selected-row" : ""}
+                      >
                         <td>{index + 1}</td>
                         <td>{item.name}</td>
                         <td>{item.location}</td>
@@ -369,20 +446,33 @@ export default function LocalStorePage() {
                             <button 
                               onClick={(e) => { e.stopPropagation(); moveRouteUp(index); }}
                               disabled={index === 0}
+                              aria-label="Move up"
                             >
                               ↑
                             </button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); moveRouteDown(index); }}
                               disabled={index === routeOrder.length - 1}
+                              aria-label="Move down"
                             >
                               ↓
                             </button>
                           </td>
                         )}
-                        <td>
-                          <button onClick={(e) => { e.stopPropagation(); handleEditLocation(item); }}>
+                        <td className="actions-cell">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleEditLocation(item); }}
+                            className="edit-btn"
+                            disabled={isLoading}
+                          >
                             Edit
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteStore(item.id); }}
+                            className="delete-btn"
+                            disabled={isLoading}
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -390,7 +480,7 @@ export default function LocalStorePage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={showReorderButtons ? 5 : 4}>No results found</td>
+                    <td colSpan={showReorderButtons ? 5 : 4}>No stores found</td>
                   </tr>
                 )}
               </tbody>
@@ -398,11 +488,10 @@ export default function LocalStorePage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN - MAP/DETAILS */}
         {(selectedItem || externalLocation || isCreateMode || isEditMode) && (
           <div className="details-section">
             <div className={`details-card ${isCreateMode || isEditMode ? "form-mode" : ""}`}>
-              <button className="close-btn" onClick={handleClosePopup}>×</button>
+              <button className="close-btn" onClick={handleClosePopup} aria-label="Close">×</button>
               
               {selectedItem && !isEditMode ? (
                 <>
@@ -412,20 +501,37 @@ export default function LocalStorePage() {
                     <p><strong>Owner:</strong> {selectedItem.owner_name}</p>
                     <p><strong>Contact:</strong> {selectedItem.number}</p>
                     {selectedItem.email && <p><strong>Email:</strong> {selectedItem.email}</p>}
+                    <p><strong>Day:</strong> {selectedItem.day}</p>
                   </div>
                   <div className="map-container">
                     <LeafletMapPopup lat={selectedItem.lat} lng={selectedItem.lng} />
                   </div>
-                  <button 
-                    className="action-btn maps-btn"
-                    onClick={() => window.open(`https://www.google.com/maps?q=${selectedItem.lat},${selectedItem.lng}`, "_blank")}
-                  >
-                    Open in Google Maps
-                  </button>
+                  <div className="action-buttons">
+                    <button 
+                      className="action-btn maps-btn"
+                      onClick={() => window.open(`https://www.google.com/maps?q=${selectedItem.lat},${selectedItem.lng}`, "_blank")}
+                    >
+                      Open in Google Maps
+                    </button>
+                    <button 
+                      className="action-btn edit-btn"
+                      onClick={() => handleEditLocation(selectedItem)}
+                      disabled={isLoading}
+                    >
+                      Edit Store
+                    </button>
+                    <button 
+                      className="action-btn delete-btn"
+                      onClick={() => handleDeleteStore(selectedItem.id)}
+                      disabled={isLoading}
+                    >
+                      Delete Store
+                    </button>
+                  </div>
                 </>
-              ) : isCreateMode || isEditMode ? (
+              ) : (isCreateMode || isEditMode) ? (
                 <>
-                  <h2>{isEditMode ? "Edit Location" : "Create New Location"}</h2>
+                  <h2>{isEditMode ? "Edit Store" : "Create New Store"}</h2>
                   <div className="form-container">
                     <div className="form-column">
                       <div className="form-group">
@@ -436,6 +542,7 @@ export default function LocalStorePage() {
                           value={formData.name}
                           onChange={handleFormInputChange}
                           required
+                          placeholder="Enter store name"
                         />
                       </div>
                       <div className="form-group">
@@ -446,6 +553,7 @@ export default function LocalStorePage() {
                           value={formData.location}
                           onChange={handleFormInputChange}
                           required
+                          placeholder="Enter address"
                         />
                       </div>
                       <div className="form-group">
@@ -456,6 +564,7 @@ export default function LocalStorePage() {
                           value={formData.owner_name}
                           onChange={handleFormInputChange}
                           required
+                          placeholder="Enter owner's name"
                         />
                       </div>
                       <div className="form-group">
@@ -466,6 +575,8 @@ export default function LocalStorePage() {
                           value={formData.number}
                           onChange={handleFormInputChange}
                           required
+                          placeholder="e.g. 09123456789"
+                          pattern="[0-9+]+"
                         />
                       </div>
                       <div className="form-group">
@@ -475,6 +586,7 @@ export default function LocalStorePage() {
                           name="email"
                           value={formData.email}
                           onChange={handleFormInputChange}
+                          placeholder="e.g. owner@example.com"
                         />
                       </div>
                       <div className="form-group">
@@ -490,20 +602,68 @@ export default function LocalStorePage() {
                           ))}
                         </select>
                       </div>
+                      <div className="form-group coordinates-group">
+                        <label>Latitude *</label>
+                        <input
+                          type="number"
+                          name="lat"
+                          value={formData.lat}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            if (!isNaN(value)) {
+                              setFormData(prev => ({ ...prev, lat: value }));
+                            }
+                          }}
+                          required
+                          step="any"
+                          min="-90"
+                          max="90"
+                        />
+                        <label>Longitude *</label>
+                        <input
+                          type="number"
+                          name="lng"
+                          value={formData.lng}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            if (!isNaN(value)) {
+                              setFormData(prev => ({ ...prev, lng: value }));
+                            }
+                          }}
+                          required
+                          step="any"
+                          min="-180"
+                          max="180"
+                        />
+                      </div>
                     </div>
                     <div className="map-column">
                       <div className="map-container">
-                        <LeafletMapPopup 
+                        {markerPosition.lat && markerPosition.lng ? (
+                          <LeafletMapPopup 
                           lat={markerPosition.lat} 
                           lng={markerPosition.lng}
                           onMarkerPositionChange={handleMarkerPositionChange}
-                          isDraggable={true}
-                        />
+                          onMapTripleClick={handleMarkerPositionChange}
+                          isDraggable={isCreateMode || isEditMode}
+                          />
+                        ) : (
+                          <div className="map-loading">Loading map...</div>
+                        )}
                       </div>
                       <div className="coordinates">
+                        <p>Lat: {formatCoordinate(markerPosition.lat)}</p>
+                        <p>Lng: {formatCoordinate(markerPosition.lng)}</p>
                         <button
                           className="action-btn maps-btn"
-                          onClick={() => window.open(`https://www.google.com/maps?q=${formData.lat},${formData.lng}`, "_blank")}
+                          onClick={() => {
+                            if (typeof formData.lat === 'number' && typeof formData.lng === 'number') {
+                              window.open(`https://www.google.com/maps?q=${formData.lat},${formData.lng}`, "_blank");
+                            } else {
+                              toast.error("Coordinates are not valid", toastConfig);
+                            }
+                          }}
+                          disabled={!formData.lat || !formData.lng}
                         >
                           Preview in Maps
                         </button>
@@ -511,12 +671,21 @@ export default function LocalStorePage() {
                     </div>
                   </div>
                   <div className="form-actions">
-                    <button className="action-btn save-btn" onClick={handleSaveNewData}>
-                      {isEditMode ? "Save Changes" : "Save Location"}
+                    <button className="action-btn save-btn" onClick={handleSaveNewData} disabled={isLoading}>
+                      {isLoading ? "Saving..." : (isEditMode ? "Save Changes" : "Save Store")}
                     </button>
-                    <button className="action-btn cancel-btn" onClick={handleClosePopup}>
+                    <button className="action-btn cancel-btn" onClick={handleClosePopup} disabled={isLoading}>
                       Cancel
                     </button>
+                    {isEditMode && (
+                      <button 
+                        className="action-btn delete-btn"
+                        onClick={() => handleDeleteStore(selectedItem.id)}
+                        disabled={isLoading}
+                      >
+                        Delete Store
+                      </button>
+                    )}
                   </div>
                 </>
               ) : externalLocation ? (

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 
-const API_URL = `https://k-to-drinks-management-system.onrender.com/api`;
+const API_URL ='http://localhost:8000/api';
 
 
 export const UserContext = createContext();

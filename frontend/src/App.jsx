@@ -14,7 +14,7 @@ import UserPage from './pages/UserPage';
 import { toast } from 'react-toastify'; // Import toast for notifications
 import './index.css';
 
-const API_URL = `https://k-to-drinks-management-system.onrender.com/api`;
+const API_URL = 'http://localhost:8000/api';
 
 // Toast configuration
 const toastConfig = {
