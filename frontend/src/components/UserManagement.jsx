@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import "../css/usermanagement.css";
 import { toast } from "react-toastify";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = `${import.meta.env.VITE_API_URL}/api` || 'http://127.0.0.1:8000/api';
 
 // Toast configuration
 const toastConfig = {

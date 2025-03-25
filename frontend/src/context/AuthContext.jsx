@@ -14,7 +14,7 @@ export default function AuthProvider({children}) {
         setError(null);
       
         try {
-          const response = await fetch(import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/login', {
+          const response = await fetch(`${import.meta.env._API_URL}/api/login` || 'http://127.0.0.1:8000/api/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
