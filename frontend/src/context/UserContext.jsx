@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api`;
+const API_URL = `https://k-to-drinks-management-system.onrender.com/api`;
 
 
 export const UserContext = createContext();

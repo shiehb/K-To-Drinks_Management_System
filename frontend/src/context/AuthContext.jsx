@@ -1,7 +1,7 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 
 // Environment-based API URL
-const API_URL = `${import.meta.env._API_URL}/api/login`;
+const API_URL = `https://k-to-drinks-management-system.onrender.com/api`;
 console.log('API URL:', API_URL);
 
 // Create AuthContext

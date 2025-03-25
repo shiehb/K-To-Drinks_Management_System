@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import "../css/usermanagement.css";
 import { toast } from "react-toastify";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api`;
+const API_URL = `https://k-to-drinks-management-system.onrender.com/api`;
 
 // Toast configuration
 const toastConfig = {
