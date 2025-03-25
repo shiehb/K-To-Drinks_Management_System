@@ -1,0 +1,358 @@
+/* LoginPage */
+.login-container {
+  width: 100%;
+  height: 100vh; 
+  display: grid; 
+  grid-template-rows: auto 1fr; 
+  place-items: center; 
+  background: var(--background-color); 
+  color: var(--text-color); 
+}
+
+/* Top Section */
+.top-content {
+  padding: 75px 0 10px;
+  text-align: center; 
+  font-weight: bold; 
+  color: var(--primary-color); 
+  grid-row: 1; 
+}
+.login-title-bottom {
+  letter-spacing: 10px;
+}
+
+/* Responsive Text Size for .top-content */
+@media (min-width: 1920px) {
+  .top-content {
+    font-size: 2.5rem; 
+  }
+}
+
+@media (min-width: 1440px) {
+  .top-content {
+    font-size: 2rem; 
+  }
+}
+
+@media (max-width: 1024px) {
+  .top-content {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-content {
+    font-size: 1.5rem;
+  }
+.login-title-bottom {
+  letter-spacing: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-content {
+    font-size: 1.25rem;
+  }
+}
+
+/* Bottom Section */
+.bottom-content {
+  padding: 10px 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  grid-row: 2; 
+}
+
+/* Login Form */
+.login-form {
+  background-color: var(--sbackground-color);
+  padding: 35px;
+  border-radius: 15px;
+  width: 100%;
+  max-width: 350px;
+  border: 1px solid var(--border-color);
+  transition: 0.4s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-form:hover,
+.login-form:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 15px var(--shadow-color);
+}
+
+/* Login Form Heading */
+.login-form h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-color);
+  margin-bottom: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+/* Login Form Subheading */
+.login-form p {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 30px;
+  text-align: left;
+  width: 100%;
+}
+
+/* Labels */
+.labels {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary-color);
+}
+/* Input Fields */
+.inputs {
+  width: 100%;
+  padding: 15px 80px 15px 15px; 
+  margin-top: 5px;
+  margin-bottom: 20px;
+  height: 50px;
+  border: 1px solid var(--border-color);
+  border-radius: 25px;
+  outline: none;
+  font-size: 16px;
+  background: transparent;
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+.inputs:focus {
+  background-color: var(--background-color);
+}
+
+
+/* Password Input Container */
+.password-input-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Password Toggle Icon */
+.password-toggle-icon {
+  position: absolute;
+  right: 15px;
+  top: 55%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--text-color);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border-left: 1px solid var(--border-color);
+  padding-left: 10px;
+}
+
+.password-toggle-icon:hover {
+  color: var(--primary-color);
+}
+
+
+/* Login Button */
+.button {
+  padding: 15px;
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 25px;
+  outline: none;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  cursor: pointer;
+  transition: 0.3s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.button:hover,
+.button:active {
+  color: var(--stext-color);
+  background-color: var(--primary-color);
+  border: 1px solid var(--border-color);
+}
+
+.button:active {
+  transform: scale(0.95);
+  box-shadow: none;
+}
+
+.error-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: var(--primary-color);
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--primary-color);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  width: 100%;
+  max-width: 350px;
+  z-index: 1000;
+}
+
+/* Media Queries for Responsive Design */
+
+@media (min-width: 1920px) {
+  .login-form {
+    max-width: 450px;
+    height: auto;
+    padding: 50px;
+  }
+
+  .login-form h1 {
+    font-size: 36px;
+    margin-bottom: 15px;
+  }
+
+  .login-form p {
+    font-size: 20px;
+    margin-bottom: 40px;
+  }
+
+  .inputs {
+    padding: 20px 50px 20px 20px;
+    font-size: 20px;
+  }
+
+  .button  {
+    height: 50px;
+    font-size: 20px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .login-form {
+    max-width: 400px;
+    height: auto;
+    padding: 40px;
+  }
+
+  .login-form h1 {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  .login-form p {
+    font-size: 18px;
+    margin-bottom: 35px;
+  }
+
+  .inputs {
+    padding: 18px 45px 18px 18px;
+    font-size: 18px;
+  }
+
+  .button {
+    height: 55px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .login-form {
+    padding: 25px;
+    max-width: 300px;
+    height: auto;
+  }
+
+  .login-form h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .login-form p {
+    font-size: 14px;
+    margin-bottom: 25px;
+  }
+
+  .inputs {
+    padding: 12px 35px 12px 12px;
+    font-size: 14px;
+  }
+
+  .button {
+    height: 50px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-form {
+    padding: 20px;
+    max-width: 280px;
+    height: auto;
+  }
+
+  .login-form h1 {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .login-form p {
+    font-size: 12px;
+    margin-bottom: 20px;
+  }
+
+  .inputs {
+    padding: 10px 30px 10px 10px;
+    font-size: 12px;
+  }
+
+  .button {
+    height: 45px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-form {
+    padding: 15px;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .login-form h1 {
+    font-size: 18px;
+    margin-bottom: 5px;
+  }
+
+  .login-form p {
+    font-size: 12px;
+    margin-bottom: 15px;
+  }
+
+  .inputs {
+    padding: 8px 25px 8px 8px;
+    font-size: 12px;
+  }
+
+  .button {
+    height: 40px;
+    font-size: 12px;
+  }
+}

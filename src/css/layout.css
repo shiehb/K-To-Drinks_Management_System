@@ -1,0 +1,9 @@
+/* Layout Content */
+.main-content {
+  background-color: var(--background-color);
+  min-height: 100vh;
+  overflow: auto;
+  padding: 90px 10px 10px 10px; 
+  margin-left: 250px;
+}
+

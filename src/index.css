@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@fortawesome/fontawesome-free/css/all.css";
+@import url('https://fonts.cdnfonts.com/css/product-sans');
+/* Root Variables */
+:root {
+  --primary-color: #C23A22;
+  --primary-hover: #c23a2234;
+  --text-color: #0c1d32;
+  --stext-color: #e8e8e8;
+  --border-color: #000000;
+  --sborder-color: #e8e8e8;
+  --shadow-color: rgba(87, 87, 87, 0.7);
+  --background-color: #fffbfc;
+  --sbackground-color: #fff1f1;
+  --error-color: #C23A22;
+  --success-color: #4caf50;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Product Sans', Arial, sans-serif;
+  }
