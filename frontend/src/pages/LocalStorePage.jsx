@@ -602,40 +602,6 @@ export default function LocalStorePage() {
                           ))}
                         </select>
                       </div>
-                      <div className="form-group coordinates-group">
-                        <label>Latitude *</label>
-                        <input
-                          type="number"
-                          name="lat"
-                          value={formData.lat}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            if (!isNaN(value)) {
-                              setFormData(prev => ({ ...prev, lat: value }));
-                            }
-                          }}
-                          required
-                          step="any"
-                          min="-90"
-                          max="90"
-                        />
-                        <label>Longitude *</label>
-                        <input
-                          type="number"
-                          name="lng"
-                          value={formData.lng}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            if (!isNaN(value)) {
-                              setFormData(prev => ({ ...prev, lng: value }));
-                            }
-                          }}
-                          required
-                          step="any"
-                          min="-180"
-                          max="180"
-                        />
-                      </div>
                     </div>
                     <div className="map-column">
                       <div className="map-container">
