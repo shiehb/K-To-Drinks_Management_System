@@ -17,7 +17,7 @@ Teams:
 ────────────────────┘
 Current site: stately-brioche-cceac8
 Admin URL:    https://app.netlify.com/sites/stately-brioche-cceac8
-Site URL:     https://stately-brioche-cceac8.netlify.app
+Site URL:     https://k-to-drinks.netlify.app/
 Site Id:      dec03552-0c26-46a1-855f-15e8ddc9f113
 
 
