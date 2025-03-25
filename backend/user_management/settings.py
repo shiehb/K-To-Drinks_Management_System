@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 
-
 """
 
 from pathlib import Path
@@ -23,13 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6(huu*35e%7e0g2rvxg-x$e2hhbtrk7c7&aq3_w$8ks^-m-nu+'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default_secret_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['k-to-drinks-management-system.onrender.com', '127.0.0.1', 'localhost']
-
 
 
 # Application definition
@@ -43,9 +41,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',  # Add DRF
     'users',  # Add your app
+    'corsheaders',  # Add CORS headers once
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Keep this only once at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -53,24 +53,19 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 # CORS Configuration
-INSTALLED_APPS += ['corsheaders']
-MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
-
 CORS_ALLOWED_ORIGINS = [
-    'https://k-to-drinks.netlify.app',
-    'http://localhost:5173', # For local development
+    'https://k-to-drinks.netlify.app',  # Frontend URL
+    'http://localhost:5173',  # Local development
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF settings for trusted origins
 CSRF_TRUSTED_ORIGINS = [
     'https://k-to-drinks-management-system.onrender.com',
 ]
-
-
 
 ROOT_URLCONF = 'user_management.urls'
 
@@ -93,17 +88,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'user_management.wsgi.application'
 
 
-
 # Static Files for Vite
 VITE_BUILD_DIR = os.path.join(BASE_DIR, 'frontend', 'dist')
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [VITE_BUILD_DIR]
 
-# Database
+# Database Configuration
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',  # Use PostgreSQL in production
+        'NAME': os.getenv('DB_NAME', 'default_db_name'),
+        'USER': os.getenv('DB_USER', 'default_db_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'default_db_password'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),  # Use 'localhost' for local or specific host URL for production
+        'PORT': os.getenv('DB_PORT', '5432'),  # Default PostgreSQL port
     }
 }
 
@@ -116,9 +114,10 @@ USE_TZ = True
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
 
+# Password validation (optional, uncomment to use)
 # AUTH_PASSWORD_VALIDATORS = [
 #     {
 #         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -134,25 +133,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #     },
 # ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_URL = 'static/'
-
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
