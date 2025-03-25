@@ -14,7 +14,7 @@ export default function AuthProvider({children}) {
         setError(null);
       
         try {
-          const response = await fetch('http://localhost:8000/api/login/', {
+          const response = await fetch('https://k-to-drinks-management-system.onrender.com/api/login/' || 'http://localhost:8000/api/login/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

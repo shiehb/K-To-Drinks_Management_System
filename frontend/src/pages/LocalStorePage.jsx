@@ -3,7 +3,7 @@ import "../css/localstore.css";
 import LeafletMapPopup from "../components/LeafletMapPopup";
 import { toast } from "react-toastify";
 
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = 'https://k-to-drinks-management-system.onrender.com/api'||'http://127.0.0.1:8000/api';
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DEFAULT_LAT = 16.63614047965268;
 const DEFAULT_LNG = 120.31339285476308;
