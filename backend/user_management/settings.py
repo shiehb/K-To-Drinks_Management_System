@@ -61,16 +61,13 @@ INSTALLED_APPS += ['corsheaders']
 MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',  # Vite Frontend
+    'https://k-to-drinks.netlify.app',
+    'http://localhost:5173', # For local development
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     'https://k-to-drinks-management-system.onrender.com',
-]
-
-CORS_ALLOWED_ORIGINS += [
-    "https://k-to-drinks.netlify.app/",
 ]
 
 
