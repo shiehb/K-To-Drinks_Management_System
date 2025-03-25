@@ -70,7 +70,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CORS_ALLOWED_ORIGINS += [
-    "https://your-site-name.netlify.app",
+    "https://k-to-drinks.netlify.app/",
 ]
 
 
