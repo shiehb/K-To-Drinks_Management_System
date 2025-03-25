@@ -65,6 +65,11 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://k-to-drinks-management-system.onrender.com',
+]
+
+
 
 ROOT_URLCONF = 'user_management.urls'
 
