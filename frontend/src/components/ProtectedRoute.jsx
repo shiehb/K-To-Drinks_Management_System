@@ -1,18 +1,18 @@
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getCurrentUser } from '../services/auth';
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const user = getCurrentUser();
 
-  if (loading) {
-    return <div>Loading...</div>; // Or a spinner
-  }
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+  return user ? children : null;
 };
 
 export default ProtectedRoute;

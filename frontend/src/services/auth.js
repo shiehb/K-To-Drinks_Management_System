@@ -1,59 +1,59 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000'; // Your Django backend URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const authService = {
-  // Login function
-  login: async (username, password) => {
-    try {
-      const response = await axios.post(`${API_URL}/login/`, { username, password });
-      if (response.data.access) {
-        localStorage.setItem('accessToken', response.data.access);
-        localStorage.setItem('refreshToken', response.data.refresh);
-        localStorage.setItem('user', JSON.stringify({
-          username: response.data.username,
-          firstName: response.data.first_name,
-          lastName: response.data.last_name
-        }));
-      }
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
+export const login = async (username, password) => {
+  try {
+    const response = await axios.post(`${API_URL}/api/token/`, {
+      username,
+      password
+    });
+    
+    if (response.data.access) {
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
     }
-  },
-
-  // Logout function
-  logout: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-  },
-
-  // Get current user
-  getCurrentUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
-  },
-
-  // Refresh token
-  refreshToken: async () => {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      const response = await axios.post(`${API_URL}/token/refresh/`, { refresh: refreshToken });
-      if (response.data.access) {
-        localStorage.setItem('accessToken', response.data.access);
-      }
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  // Get auth header
-  getAuthHeader: () => {
-    const token = localStorage.getItem('accessToken');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
   }
 };
 
-export default authService;
+export const refreshToken = async () => {
+  try {
+    const refresh = localStorage.getItem('refresh_token');
+    const response = await axios.post(`${API_URL}/api/token/refresh/`, {
+      refresh
+    });
+    
+    localStorage.setItem('access_token', response.data.access);
+    return response.data.access;
+  } catch (error) {
+    logout();
+    throw error;
+  }
+};
+
+export const logout = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+};
+
+export const getCurrentUser = () => {
+  const token = localStorage.getItem('access_token');
+  if (!token) return null;
+  
+  // You can decode the token to get user info if needed
+  // Note: This doesn't verify the token, just decodes it
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  );
+  
+  return JSON.parse(jsonPayload);
+};

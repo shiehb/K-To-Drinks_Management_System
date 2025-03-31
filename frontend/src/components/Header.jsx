@@ -1,68 +1,55 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
-import { useAuth } from "../context/AuthContext";
-import "../css/header.css";
+"use client"
 
-export default function Header() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [menuHovered, setMenuHovered] = useState(false);
-  const [toastId, setToastId] = useState(null); // State to track the toast ID
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "react-toastify"
+import { useAuth } from "../context/AuthContext"
+import "../css/header.css"
 
-  const userName = user?.username || "Username";
-  const firstName = user?.firstName || "";
-  const lastName = user?.lastName || "";
+export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibility, sidebarHidden }) {
+  const navigate = useNavigate()
+  const { user, logout, darkMode, toggleDarkMode } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [menuHovered, setMenuHovered] = useState(false)
+  const [toastId, setToastId] = useState(null)
+
+  const userName = user?.username || "Username"
+  const firstName = user?.firstName || ""
+  const lastName = user?.lastName || ""
 
   const toggleMenu = () => {
-    setIsMenuOpen((prev) => !prev);
-  };
+    setIsMenuOpen((prev) => !prev)
+  }
 
   useEffect(() => {
     if (isMenuOpen && !menuHovered) {
       const timer = setTimeout(() => {
-        setIsMenuOpen(false);
-      }, 3000);
-      return () => clearTimeout(timer);
+        setIsMenuOpen(false)
+      }, 3000)
+      return () => clearTimeout(timer)
     }
-  }, [isMenuOpen, menuHovered]);
+  }, [isMenuOpen, menuHovered])
 
   const handleLogoutClick = () => {
     if (toastId !== null) {
-      toast.dismiss(toastId); // Dismiss the existing toast if any
+      toast.dismiss(toastId)
     }
 
     const id = toast.warn(
-      <div style={{ border: '1px solid black', padding: '10px', borderRadius: '8px', margin: '5px', backgroundColor: '#fffbfc' }}>
-        <p style={{ display: 'flex', justifyContent: 'center', textAlign: 'center', gap: '10px', margin: '5px' }}>Are you sure you want to logout?</p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', margin: '15px 5px' }}>
+      <div className="logout-confirmation">
+        <p>Are you sure you want to logout?</p>
+        <div className="logout-buttons">
           <button
             onClick={() => {
-              logout();
-              navigate('/');
-              toast.dismiss(id);
+              logout()
+              navigate("/")
+              toast.dismiss(id)
             }}
-            style={{
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              padding: '10px 40px',
-              cursor: 'pointer',
-            }}
+            className="btn-yes"
           >
             Yes
           </button>
-          <button
-            onClick={() => toast.dismiss(id)}
-            style={{
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              padding: '10px 40px',
-              cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => toast.dismiss(id)} className="btn-no">
             No
           </button>
         </div>
@@ -73,25 +60,51 @@ export default function Header() {
         closeOnClick: false,
         draggable: false,
         closeButton: false,
-        onClose: () => setToastId(null), // Reset the toast ID when the toast is closed
-      }
-    );
+        onClose: () => setToastId(null),
+      },
+    )
 
-    setToastId(id); // Store the toast ID
-  };
+    setToastId(id)
+  }
 
   return (
     <>
       <header className="top-header" role="banner">
-        <div className="company-name">
-          <div className="title-top">K-TO-DRINKS</div>
-          <div className="title-bottom">TRADING</div>
+        <div className="header-left">
+          <div className="header-controls">
+            <button
+              className="sidebar-toggle"
+              onClick={toggleSidebar}
+              aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              <span className="material-icons">{sidebarOpen ? "menu_open" : "menu"}</span>
+            </button>
+          </div>
+
+          <div className="company-name">
+            <div className="title-top">K-TO-DRINKS</div>
+            <div className="title-bottom">TRADING</div>
+          </div>
         </div>
-        <div className="user-name" aria-label="User name">
+
+        <div className="header-center">
+          <div className="user-name" aria-label="User name">
             <span>Welcome, </span> {userName}
           </div>
-        <div className="header-item">
-          
+        </div>
+
+        <div className="header-right">
+          {/* Dark Mode Toggle */}
+          <button
+            className="dark-mode-toggle"
+            onClick={toggleDarkMode}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <span className="material-icons">{darkMode ? "light_mode" : "dark_mode"}</span>
+          </button>
+
           <div
             className="menu-icon"
             onClick={toggleMenu}
@@ -101,9 +114,9 @@ export default function Header() {
             onKeyDown={(e) => e.key === "Enter" && toggleMenu()}
           >
             {isMenuOpen ? (
-              <i className="fa-solid fa-xmark"></i>
+              <span className="material-icons">close</span>
             ) : (
-              <i className="fa-solid fa-ellipsis-vertical"></i>
+              <span className="material-icons">account_circle</span>
             )}
           </div>
         </div>
@@ -117,35 +130,39 @@ export default function Header() {
           role="menu"
         >
           <ul>
-            {/* Display first name and last name */}
-            <li role="menuitem">
-              {firstName} {lastName}
+            <li role="menuitem" className="user-profile">
+              <span className="material-icons profile-icon">account_circle</span>
+              <div>
+                <div className="user-full-name">
+                  {firstName} {lastName}
+                </div>
+                <div className="user-username">{userName}</div>
+              </div>
             </li>
 
-            {/* Notification Section */}
-            <li role="menuitem" >
+            <li role="menuitem" className="menu-item">
               <span className="material-icons nav-icon">notifications</span>
               Notifications
             </li>
 
-            {/* Show Report Section */}
-            <li role="menuitem">
+            <li role="menuitem" className="menu-item">
               <span className="material-icons nav-icon">assessment</span>
               Reports
             </li>
 
-            {/* Logout Button */}
-            <li
-              role="menuitem"
-              className="logout-item"
-              onClick={handleLogoutClick}
-            >
-              <span className="material-icons nav-icon">logout</span> {/* Logout icon */}
+            <li role="menuitem" className="menu-item" onClick={toggleDarkMode}>
+              <span className="material-icons nav-icon">{darkMode ? "light_mode" : "dark_mode"}</span>
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </li>
+
+            <li role="menuitem" className="menu-item logout-item" onClick={handleLogoutClick}>
+              <span className="material-icons nav-icon">logout</span>
               Log out
             </li>
           </ul>
         </div>
       )}
     </>
-  );
+  )
 }
+

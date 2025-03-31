@@ -8,6 +8,19 @@ This project consists of a frontend and a backend. Below are the steps to set up
 http://k-to-drinks-management-system.onrender.com/
 ### Backend Setup and Usage
 
+Name:  JERICHO URBANO
+Email: jerichourbano.01.01.04@gmail.com
+Teams:
+  Nigguss: Owner Reviewer
+────────────────────┐
+ Netlify Site Info  │
+────────────────────┘
+Current site: stately-brioche-cceac8
+Admin URL:    https://app.netlify.com/sites/stately-brioche-cceac8
+Site URL:     https://k-to-drinks.netlify.app/
+Site Id:      dec03552-0c26-46a1-855f-15e8ddc9f113
+
+
 ## Commands
 
 ### Frontend

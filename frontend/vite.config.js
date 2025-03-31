@@ -1,20 +1,32 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: {
-    port: 5173, // Default Vite port
-    open: true, // Auto open browser
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8000', // Django API URL
-        changeOrigin: true,
-      },
+  css: {
+    postcss: './postcss.config.js',
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
   },
-  build: {
-    outDir: 'dist', // Ensures proper build output
+  server: {
+    host: 'localhost', // Explicit host
+    port: 5173, // Explicit port
+    strictPort: true, // Don't try other ports if 5173 is taken
+    hmr: {
+      protocol: 'ws', // Force WebSocket protocol
+      host: 'localhost',
+      port: 5173,
+    },
   },
-})
+  preview: {
+    port: 5173,
+    strictPort: true,
+  },
+  optimizeDeps: {
+    include: ['@emotion/react', '@emotion/styled'],
+  },
+});

@@ -1,68 +1,43 @@
-import React from "react";
-import { NavLink } from "react-router-dom"; // Use NavLink instead of Link
-import "../css/nav.css";
+import { NavLink, useLocation } from "react-router-dom"
+import "../css/nav.css"
 
-function NavBar() {
+function NavBar({ isOpen, isMobile, isHidden }) {
+  const location = useLocation()
+
+  const navItems = [
+    { path: "/dashboard", icon: "dashboard", label: "Dashboard" },
+    { path: "/user", icon: "people", label: "Manage User" },
+    { path: "/localstore", icon: "store", label: "Local Store" },
+    { path: "/inventory", icon: "inventory", label: "Inventory" },
+    { path: "/products", icon: "layers", label: "Products" },
+    { path: "/order_delivery", icon: "shopping_cart", label: "Order & Delivery" },
+  ]
+
   return (
-    <nav className="navigation">
-      <ul>
-      <li>
-          <NavLink
-            to="/user"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            <span className="material-icons nav-icon">people</span> {/* User Management icon */}
-            <span>User Management</span> {/* Text */}
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            <span className="material-icons nav-icon">dashboard</span> {/* Dashboard icon */}
-            <span>Dashboard</span> {/* Text */}
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-          to="/localstore"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            <span className="material-icons nav-icon">store</span> {/* User Management icon */}
-            <span>Local Store</span> {/* Text */}
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/inventory"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            <span className="material-icons nav-icon">inventory</span> {/* User Management icon */}
-            <span>Inventory</span> {/* Text */}
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-          to="/products"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            <span className="material-icons nav-icon">layers</span> {/* User Management icon */}
-            <span>Products</span> {/* Text */}
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-          to="/order_delivery"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            <span className="material-icons nav-icon">shopping_cart</span> {/* User Management icon */}
-            <span>Order & Delivery</span> {/* Text */}
-          </NavLink>
-        </li>
-      </ul>
+    <nav
+      className={`navigation ${isOpen ? "open" : "closed"} ${isMobile ? "mobile" : ""} ${isHidden ? "hidden" : ""}`}
+      aria-hidden={!isOpen && isMobile}
+    >
+      <div className="nav-container">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={`nav-item ${isActive ? "active" : ""} ${!isOpen ? "collapsed" : ""}`}
+              title={item.label}
+            >
+              <span className="material-icons nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+            </NavLink>
+          )
+        })}
+      </div>
     </nav>
-  );
+  )
 }
 
-export default NavBar;
+export default NavBar
+
