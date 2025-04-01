@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
 import { Search, Plus, Minus } from "lucide-react"
 import "../css/order.css"
-import api from "../api/api_url";
 
 export default function OrderPage() {
   // State for store selection
