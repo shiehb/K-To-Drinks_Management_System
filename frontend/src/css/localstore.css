@@ -525,7 +525,13 @@
 
 @media (min-width: 576px) {
   .action-buttons {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .action-buttons {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
@@ -555,7 +561,8 @@
 .map-btn,
 .edit-store-btn,
 .archive-store-btn,
-.save-location-btn {
+.save-location-btn,
+.route-btn {
   flex: 1;
 }
 
@@ -577,6 +584,37 @@
 .save-location-btn:hover {
   background-color: var(--success-color);
   border-color: var(--success-color);
+}
+
+.route-btn.active {
+  background-color: #ff9800;
+  color: white;
+  border-color: #ff9800;
+}
+
+.route-btn:hover {
+  background-color: #ff9800;
+  border-color: #ff9800;
+}
+
+/* Add styles for the traffic button */
+.traffic-btn.active {
+  background-color: #ff5722;
+  color: white;
+  border-color: #ff5722;
+}
+
+.traffic-btn:hover {
+  background-color: #ff5722;
+  border-color: #ff5722;
+}
+
+.traffic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border-color: var(--border-color);
 }
 
 /* Form Layout */
@@ -888,11 +926,27 @@
   --primary-color-rgb: 194, 58, 34;
   --error-color-rgb: 244, 67, 54;
   --text-color-rgb: 12, 29, 50;
+  --error-hover: #d32f2f;
 }
 
 .dark {
   --primary-color-rgb: 231, 76, 60;
   --error-color-rgb: 255, 82, 82;
   --text-color-rgb: 232, 232, 232;
+  --error-hover: #f44336;
+}
+
+/* Update action buttons grid for 5 buttons */
+@media (min-width: 768px) {
+  .action-buttons {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Add import for AlertTriangle icon */
+@media (max-width: 576px) {
+  .action-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 

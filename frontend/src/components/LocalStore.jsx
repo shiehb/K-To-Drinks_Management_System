@@ -5,7 +5,20 @@ import api from "../api/api_url"
 import "../css/localstore.css"
 import LeafletMapPopup from "../components/LeafletMapPopup"
 import { toast } from "react-toastify"
-import { Search, Plus, Archive, Edit, MapPin, ExternalLink, Save, X, ArrowUp, ArrowDown } from "lucide-react"
+import {
+  Search,
+  Plus,
+  Archive,
+  Edit,
+  MapPin,
+  ExternalLink,
+  Save,
+  X,
+  ArrowUp,
+  ArrowDown,
+  Navigation,
+  AlertTriangle,
+} from "lucide-react"
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 const DEFAULT_LAT = 16.63614047965268
@@ -51,7 +64,15 @@ export default function LocalStore() {
   const [showReorderButtons, setShowReorderButtons] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showRouteView, setShowRouteView] = useState(false)
   const tableRef = useRef(null)
+  // Add a function to handle traffic simulation toggle
+  const [showTraffic, setShowTraffic] = useState(false)
+
+  const handleToggleTraffic = () => {
+    if (!selectedItem) return
+    setShowTraffic(!showTraffic)
+  }
 
   // Fetch stores from API
   const fetchStores = useCallback(async () => {
@@ -188,6 +209,7 @@ export default function LocalStore() {
     setMarkerPosition({ lat: item.lat, lng: item.lng })
     setIsCreateMode(false)
     setIsEditMode(false)
+    setShowRouteView(false)
   }
 
   const handleClosePopup = () => {
@@ -195,6 +217,7 @@ export default function LocalStore() {
     setExternalLocation(null)
     setIsCreateMode(false)
     setIsEditMode(false)
+    setShowRouteView(false)
     setFormData({
       name: "",
       location: "",
@@ -212,6 +235,7 @@ export default function LocalStore() {
     setIsEditMode(false)
     setSelectedItem(null)
     setExternalLocation(null)
+    setShowRouteView(false)
     setFormData({
       name: "",
       location: "",
@@ -228,6 +252,7 @@ export default function LocalStore() {
     setIsEditMode(true)
     setIsCreateMode(false)
     setSelectedItem(item)
+    setShowRouteView(false)
     setFormData({
       name: item.name,
       location: item.location,
@@ -296,6 +321,13 @@ export default function LocalStore() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Toggle route view
+  const handleToggleRouteView = () => {
+    if (!selectedItem) return
+
+    setShowRouteView(!showRouteView)
   }
 
   // Form validation
@@ -409,7 +441,7 @@ export default function LocalStore() {
     setShowReorderButtons(!showReorderButtons)
   }
 
-  // Filtered data
+  // Prepare route destinations for the map
   const filteredDataByDay = useMemo(() => data.filter((item) => item.day === selectedDay), [data, selectedDay])
 
   const filteredDataBySearch = useMemo(
@@ -422,6 +454,23 @@ export default function LocalStore() {
       ),
     [filteredDataByDay, searchQuery],
   )
+
+  const routeDestinations = useMemo(() => {
+    if (!showRouteView || !selectedItem) return []
+
+    // Get all stores for the selected day in the current route order
+    return routeOrder
+      .map((index) => filteredDataBySearch[index])
+      .filter((item) => item && item.id !== selectedItem.id)
+      .map((item) => ({
+        lat: item.lat,
+        lng: item.lng,
+        name: item.name,
+        address: item.location,
+      }))
+  }, [showRouteView, selectedItem, routeOrder, filteredDataBySearch])
+
+  // Filtered data
 
   return (
     <div className="local-store-page">
@@ -639,6 +688,9 @@ export default function LocalStore() {
                         lng={selectedItem.lng}
                         markerLabel={selectedItem.name}
                         markerAddress={selectedItem.location}
+                        showRoutes={showRouteView}
+                        showTraffic={showTraffic}
+                        routeDestinations={routeDestinations}
                       />
                     </div>
                     <div className="action-buttons">
@@ -650,6 +702,18 @@ export default function LocalStore() {
                       >
                         <MapPin size={16} />
                         Open in Maps
+                      </button>
+                      <button onClick={handleToggleRouteView} className={`route-btn ${showRouteView ? "active" : ""}`}>
+                        <Navigation size={16} />
+                        {showRouteView ? "Hide Route" : "Show Route"}
+                      </button>
+                      <button
+                        onClick={handleToggleTraffic}
+                        className={`traffic-btn ${showTraffic ? "active" : ""}`}
+                        disabled={!showRouteView}
+                      >
+                        <AlertTriangle size={16} />
+                        {showTraffic ? "Hide Traffic" : "Show Traffic"}
                       </button>
                       <button
                         onClick={() => handleEditLocation(selectedItem)}
