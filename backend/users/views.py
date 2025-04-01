@@ -1,7 +1,9 @@
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from rest_framework import generics
 from .models import User
 from .serializers import UserSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Existing views
 class UserListCreateView(generics.ListCreateAPIView):
@@ -31,44 +33,50 @@ class DeleteUserView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-# Login view
-from django.contrib.auth import authenticate
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-
-        if user:
-            return Response({
-                "message": "Login successful",
-                "username": user.username,
-                "first_name": user.first_name,  # Include first name
-                "last_name": user.last_name,     # Include last name
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-# In your Django views.py when generating tokens
+# views.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import get_user_model
 
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+User = get_user_model()
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-
-        # Add custom claims
+        
+        # Add custom claims - make sure to use the correct field names
         token['username'] = user.username
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
-        token['role'] = user.role  # If you have a role field
         
         return token
 
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Add user data to the response
+        user = User.objects.get(id=self.user.id)
+        data['user'] = {
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
+        
+        return data
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+# views.py
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def current_user(request):
+    return Response({
+        'username': request.user.username,
+        'first_name': request.user.first_name,
+        'last_name': request.user.last_name,
+    })

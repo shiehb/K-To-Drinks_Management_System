@@ -14,10 +14,15 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
   const [toastId, setToastId] = useState(null)
 
   // Extract user information from the auth context
-  const userName = user?.username || "Username"
-  const firstName = user?.firstName || user?.first_name || ""
-  const lastName = user?.lastName || user?.last_name || ""
-  const displayName = firstName && lastName ? `${firstName} ${lastName}` : userName
+const userName = user?.username || "Username"
+const firstName = user?.firstName || ""
+const lastName = user?.lastName || ""
+const displayName = firstName && lastName ? `${firstName} ${lastName}` : userName
+
+  // Add a useEffect to log user information for debugging
+  useEffect(() => {
+    console.log("Current user in Header:", user)
+  }, [user])
 
   const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev)

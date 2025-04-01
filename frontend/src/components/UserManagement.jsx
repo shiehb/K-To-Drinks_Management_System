@@ -10,21 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 import "../css/usermanagement.css"
 
@@ -223,15 +211,21 @@ export default function UserManagement({ users, loading, setUsers }) {
       const date = now.toISOString().split("T")[0]
       const time = now.toTimeString().split(" ")[0].replace(/:/g, "-")
 
+      // Improved CSV formatting with proper headers and data
+      const headers = ["ID", "Username", "Full Name", "Email", "Role", "Status"]
+
+      // Create CSV content with proper escaping for special characters
       const csvContent =
         "data:text/csv;charset=utf-8," +
-        ["ID,Username,Name,Email,Role,Status"]
-          .concat(
-            filteredUsers.map(
-              (user) =>
-                `${user.id},${user.username},${capitalizeEachWord(user.name)},${user.email},${user.role},${user.status}`,
-            ),
-          )
+        headers.join(",") +
+        "\n" +
+        filteredUsers
+          .map((user) => {
+            // Escape fields that might contain commas
+            const escapedName = `"${capitalizeEachWord(user.name)}"`
+            const escapedEmail = `"${user.email}"`
+            return [user.id, user.username, escapedName, escapedEmail, user.role, user.status].join(",")
+          })
           .join("\n")
 
       const encodedUri = encodeURI(csvContent)
@@ -508,128 +502,116 @@ export default function UserManagement({ users, loading, setUsers }) {
           </TabsContent>
         </Tabs>
 
-        {/* User Form Modal */}
-        <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-          <DialogContent className="dialog-content">
-            <DialogHeader>
-              <DialogTitle className="dialog-title">{userForm.id ? "Edit User" : "Add New User"}</DialogTitle>
-              <DialogDescription className="dialog-description">
-                {userForm.id ? "Update user information in the system." : "Add a new user to the system."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleUserFormSubmit} className="user-form">
-              <div className="form-field">
-                <Label htmlFor="username" className="form-label">
-                  Username
-                </Label>
-                <Input
-                  id="username"
-                  value={userForm.username}
-                  onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
-                  placeholder="Enter username"
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-field">
-                <Label htmlFor="name" className="form-label">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  value={userForm.name}
-                  onChange={(e) => setUserForm({ ...userForm, name: capitalizeEachWord(e.target.value) })}
-                  placeholder="Enter full name"
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-field">
-                <Label htmlFor="email" className="form-label">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  placeholder="Enter email address"
-                  required
-                  className="form-input"
-                />
-              </div>
-              <div className="form-field">
-                <Label htmlFor="role" className="form-label">
-                  Role
-                </Label>
-                <Select
-                  value={userForm.role}
-                  onValueChange={(value) => setUserForm({ ...userForm, role: value })}
-                  className="form-select"
-                >
-                  <SelectTrigger id="role" className="select-trigger">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent className="select-content">
-                    <SelectItem value="manager" className="select-item">
-                      Manager
-                    </SelectItem>
-                    <SelectItem value="delivery_driver" className="select-item">
-                      Delivery Driver
-                    </SelectItem>
-                    <SelectItem value="employee" className="select-item">
-                      Employee
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="form-actions">
-                <Button type="button" variant="outline" onClick={handleCancel} className="cancel-button">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isLoading} className="submit-button">
-                  {isLoading ? (
-                    <>
-                      <RefreshCcw className="loading-icon" />
-                      Saving...
-                    </>
-                  ) : userForm.id ? (
-                    "Save Changes"
-                  ) : (
-                    "Add User"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {isUserModalOpen && (
+          <div className="custom-modal-overlay">
+            <div className="custom-modal">
+              <h2 className="modal-title">{userForm.id ? "Edit User" : "Add User"}</h2>
+
+              <form onSubmit={handleUserFormSubmit} className="user-form">
+                <div className="form-group">
+                  <label htmlFor="username" className="form-label">
+                    Username:
+                  </label>
+                  <input
+                    id="username"
+                    type="text"
+                    value={userForm.username}
+                    onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                    placeholder="Enter username"
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="name" className="form-label">
+                    Full Name:
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={userForm.name}
+                    onChange={(e) => setUserForm({ ...userForm, name: capitalizeEachWord(e.target.value) })}
+                    placeholder="Enter full name"
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email" className="form-label">
+                    Email:
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    placeholder="Enter email address"
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="role" className="form-label">
+                    Role:
+                  </label>
+                  <select
+                    id="role"
+                    value={userForm.role}
+                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="manager">Manager</option>
+                    <option value="delivery_driver">Delivery Driver</option>
+                    <option value="employee">Employee</option>
+                  </select>
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit" className="save-button" disabled={isLoading}>
+                    {isLoading ? "Saving..." : userForm.id ? "Save" : "Add User"}
+                  </button>
+
+                  <button type="button" onClick={handleCancel} className="cancel-button">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Confirmation Dialog */}
-        <AlertDialog
-          open={confirmationDialog.isOpen}
-          onOpenChange={(open) => setConfirmationDialog((prev) => ({ ...prev, isOpen: open }))}
-        >
-          <AlertDialogContent className="confirmation-content">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="confirmation-title">{confirmationDialog.title}</AlertDialogTitle>
-              <AlertDialogDescription className="confirmation-description">
-                {confirmationDialog.message}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="confirmation-footer">
-              <AlertDialogCancel className="confirmation-cancel">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  confirmationDialog.onConfirm()
-                  setConfirmationDialog((prev) => ({ ...prev, isOpen: open }))
-                }}
-                className="confirmation-confirm"
-              >
-                Confirm
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {confirmationDialog.isOpen && (
+          <div className="custom-modal-overlay">
+            <div className="custom-modal confirmation-modal">
+              <div className="confirmation-icon">
+                <span className="material-icons">warning</span>
+              </div>
+              <h3 className="confirmation-title">{confirmationDialog.title}</h3>
+              <p className="confirmation-message">{confirmationDialog.message}</p>
+              <div className="confirmation-actions">
+                <button
+                  onClick={() => setConfirmationDialog((prev) => ({ ...prev, isOpen: false }))}
+                  className="cancel-button"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    confirmationDialog.onConfirm()
+                    setConfirmationDialog((prev) => ({ ...prev, isOpen: false }))
+                  }}
+                  className="confirm-button"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

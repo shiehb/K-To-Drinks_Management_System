@@ -1,8 +1,9 @@
 
 
 from pathlib import Path
-from datetime import timedelta
 import os
+# JWT settings
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,15 +27,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',  # Add DRF
-    'rest_framework_simplejwt', # JWT support
-    'corsheaders',  # Add CORS headers once
-    'users',  # Add your app
-    'local_stores', # Add local stores
+    'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'local_stores',
+    'users',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Keep this only once at the top
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -46,47 +47,64 @@ MIDDLEWARE = [
 
 
 
-# CORS Configuration
+# CORS settings
 CORS_ALLOWED_ORIGINS = [
-    'https://k-to-drinks.netlify.app',  # Frontend URL
-    'http://localhost:5173',  # Local development
-    'http://localhost:3000',  # Frontend development URL
+    'https://k-to-drinks.netlify.app',  # Frontend URL online
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
 
 
 
 # CSRF settings for trusted origins
 CSRF_TRUSTED_ORIGINS = [
-    'https://k-to-drinks-management-system.onrender.com', # Backend URL
+    'https://k-to-drinks-management-system.onrender.com', # Backend URL online
     "http://127.0.0.1:8000" # Local development
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+
 
 ROOT_URLCONF = 'user_management.urls'
 
 
 DEBUG = True  # Make sure this is True during development
 
-# Add this to see tracebacks in API responses
+# REST Framework settings
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ),
-    # Add JWT Framework 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
+# JWT settings
+from datetime import timedelta
+
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_OBTAIN_SERIALIZER': 'users.serializers.CustomTokenObtainPairSerializer',
 }
 
 TEMPLATES = [
