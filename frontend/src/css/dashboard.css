@@ -5,6 +5,7 @@
   padding: 1rem;
   background-color: var(--background-color);
   overflow-y: auto;
+  color: var(--text-color);
 }
 
 /* Reset and base styles */
@@ -68,7 +69,7 @@
 
 .tab[data-state="active"] {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--stext-color);
 }
 
 /* Cards grid layout - Improved for better fit */
@@ -115,6 +116,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border-color);
+  color: var(--text-color);
 }
 
 .card:hover {
@@ -134,6 +136,7 @@
 .card-header {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
 }
 
 .card-title {
@@ -152,6 +155,7 @@
   padding: 0.75rem 1rem;
   flex: 1;
   overflow: auto;
+  color: var(--text-color);
 }
 
 .card-footer {
@@ -165,8 +169,8 @@
 .card-footer button {
   font-weight: bold;
   padding: 0.5rem 1rem;
-  background-color: var(--sprimary-color);
-  color: var(--primary-color);
+  background-color: var(--background-color);
+  color: var(--text-color);
   border: 1px solid var(--border-color);
   transition: all 0.5s;
 }
@@ -226,7 +230,7 @@
 }
 
 .text-red-600 {
-  color: var(--danger-color);
+  color: var(--error-color);
 }
 
 /* Table styling - More compact */
@@ -243,8 +247,8 @@
 }
 
 .table th {
-  background-color: rgba(0, 0, 0, 0.02);
-  color: var(--text-color);
+  background-color: var(--primary-color);
+  color: var(--stext-color);
   font-weight: 600;
   text-align: left;
   padding: 0.625rem 0.75rem;
@@ -255,7 +259,8 @@
   padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
-  background-color: var(--sbackground-color);
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .table tr:last-child td {
@@ -313,7 +318,7 @@
 
 .button-primary {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--stext-color);
 }
 
 .button-primary:hover {
@@ -327,7 +332,8 @@
 }
 
 .button-outline:hover {
-  background-color: var(--background-color);
+  background-color: var(--primary-color);
+  color: var(--stext-color);
 }
 
 .button-ghost {
@@ -363,6 +369,7 @@
 .metric-item {
   display: flex;
   align-items: center;
+  color: var(--text-color);
 }
 
 .metric-indicator {
@@ -380,11 +387,13 @@
 
 .metric-label {
   font-size: 0.875rem;
+  color: var(--text-color);
 }
 
 .metric-value {
   margin-left: auto;
   font-weight: 500;
+  color: var(--text-color);
 }
 
 .bg-primary {
@@ -396,7 +405,7 @@
 }
 
 .bg-red-500 {
-  background-color: var(--warning-color);
+  background-color: var(--error-color);
 }
 
 .mr-4 {
@@ -432,6 +441,7 @@
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: var(--text-color);
 }
 
 .driver-list {
@@ -446,10 +456,11 @@
   padding: 0.5rem;
   border-radius: 0.375rem;
   transition: background-color 0.2s;
+  color: var(--text-color);
 }
 
 .driver-item:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--primary-hover);
 }
 
 .driver-avatar {
@@ -461,6 +472,7 @@
   align-items: center;
   justify-content: center;
   margin-right: 0.5rem;
+  color: var(--stext-color);
 }
 
 .driver-info {
@@ -470,6 +482,7 @@
 .driver-name {
   font-size: 0.875rem;
   font-weight: 500;
+  color: var(--text-color);
 }
 
 .driver-stat {
@@ -479,6 +492,7 @@
 .driver-list button {
   height: 35px;
   width: 25%;
+  color: var(--text-color);
 }
 
 .h-4 {

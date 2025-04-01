@@ -5,8 +5,8 @@ function NavBar({ isOpen, isMobile, isHidden }) {
   const location = useLocation()
 
   const navItems = [
-    { path: "/dashboard", icon: "dashboard", label: "Dashboard" },
     { path: "/user", icon: "people", label: "Manage User" },
+    { path: "/dashboard", icon: "dashboard", label: "Dashboard" },
     { path: "/localstore", icon: "store", label: "Local Store" },
     { path: "/inventory", icon: "inventory", label: "Inventory" },
     { path: "/products", icon: "layers", label: "Products" },

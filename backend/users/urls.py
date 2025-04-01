@@ -5,7 +5,6 @@ from .views import (
     ArchiveUserView,
     UnarchiveUserView,
     DeleteUserView,
-    LoginView,
 )
 
 urlpatterns = [
@@ -14,5 +13,4 @@ urlpatterns = [
     path('users/<int:pk>/archive/', ArchiveUserView.as_view(), name='archive-user'),
     path('users/<int:pk>/unarchive/', UnarchiveUserView.as_view(), name='unarchive-user'),
     path('users/<int:pk>/delete/', DeleteUserView.as_view(), name='delete-user'),  # Explicit delete endpoint
-    path('login/', LoginView.as_view(), name='login'),
 ]

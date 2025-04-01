@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Fix the login function to properly handle authentication
+  // Fix the login function to properly handle authentication and user data
   const login = async (credentials) => {
     setLoading(true)
     setError(null)
@@ -108,13 +108,30 @@ export const AuthProvider = ({ children }) => {
         const userData = parseJwt(response.data.access)
 
         if (userData) {
-          // Set user state
+          // Set user state with complete information
           setUser({
             username: userData.username || userData.sub,
             firstName: userData.first_name || "",
             lastName: userData.last_name || "",
             role: userData.role || "employee",
+            email: userData.email || "",
           })
+
+          // Try to get additional user info if available
+          try {
+            const userResponse = await api.get("/users/me/")
+            if (userResponse.data) {
+              setUser((prevUser) => ({
+                ...prevUser,
+                firstName: userResponse.data.first_name || prevUser.firstName,
+                lastName: userResponse.data.last_name || prevUser.lastName,
+                email: userResponse.data.email || prevUser.email,
+              }))
+            }
+          } catch (userError) {
+            console.log("Could not fetch additional user data:", userError)
+            // Continue with the basic user info from token
+          }
 
           // Log successful authentication
           console.log("Authentication successful:", userData)

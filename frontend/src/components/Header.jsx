@@ -13,9 +13,11 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
   const [menuHovered, setMenuHovered] = useState(false)
   const [toastId, setToastId] = useState(null)
 
+  // Extract user information from the auth context
   const userName = user?.username || "Username"
-  const firstName = user?.firstName || ""
-  const lastName = user?.lastName || ""
+  const firstName = user?.firstName || user?.first_name || ""
+  const lastName = user?.lastName || user?.last_name || ""
+  const displayName = firstName && lastName ? `${firstName} ${lastName}` : userName
 
   const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev)
@@ -90,7 +92,7 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
 
         <div className="header-center">
           <div className="user-name" aria-label="User name">
-            <span>Welcome, </span> {userName}
+            <span>Welcome, </span> {displayName}
           </div>
         </div>
 

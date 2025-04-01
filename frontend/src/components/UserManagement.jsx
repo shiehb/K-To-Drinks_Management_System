@@ -509,7 +509,7 @@ export default function UserManagement({ users, loading, setUsers }) {
         </Tabs>
 
         {/* User Form Modal */}
-        <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen} className="user-dialog">
+        <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
           <DialogContent className="dialog-content">
             <DialogHeader>
               <DialogTitle className="dialog-title">{userForm.id ? "Edit User" : "Add New User"}</DialogTitle>
@@ -608,7 +608,6 @@ export default function UserManagement({ users, loading, setUsers }) {
         <AlertDialog
           open={confirmationDialog.isOpen}
           onOpenChange={(open) => setConfirmationDialog((prev) => ({ ...prev, isOpen: open }))}
-          className="confirmation-dialog"
         >
           <AlertDialogContent className="confirmation-content">
             <AlertDialogHeader>
@@ -622,7 +621,7 @@ export default function UserManagement({ users, loading, setUsers }) {
               <AlertDialogAction
                 onClick={() => {
                   confirmationDialog.onConfirm()
-                  setConfirmationDialog((prev) => ({ ...prev, isOpen: false }))
+                  setConfirmationDialog((prev) => ({ ...prev, isOpen: open }))
                 }}
                 className="confirmation-confirm"
               >

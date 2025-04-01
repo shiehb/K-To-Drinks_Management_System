@@ -1,6 +1,7 @@
 from rest_framework import generics
 from .models import User
 from .serializers import UserSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Existing views
 class UserListCreateView(generics.ListCreateAPIView):
@@ -51,3 +52,23 @@ class LoginView(APIView):
             }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+# In your Django views.py when generating tokens
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Add custom claims
+        token['username'] = user.username
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['role'] = user.role  # If you have a role field
+        
+        return token
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer

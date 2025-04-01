@@ -108,8 +108,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'user_management.wsgi.application'
 
 
-# settings.py
-VITE_BUILD_DIR = os.path.join(BASE_DIR, '..', 'frontend', 'dist')  # Note the '..'
+VITE_BUILD_DIR = os.path.join(BASE_DIR, '..', 'frontend', 'dist')
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
