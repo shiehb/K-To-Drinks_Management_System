@@ -1,8 +1,12 @@
+"use client"
+
+import { useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import "../css/nav.css"
 
 function NavBar({ isOpen, isMobile, isHidden }) {
   const location = useLocation()
+  const [showOrderDropdown, setShowOrderDropdown] = useState(false)
 
   const navItems = [
     { path: "/user", icon: "people", label: "Manage User" },
@@ -10,8 +14,16 @@ function NavBar({ isOpen, isMobile, isHidden }) {
     { path: "/localstore", icon: "store", label: "Local Store" },
     { path: "/inventory", icon: "inventory", label: "Inventory" },
     { path: "/products", icon: "layers", label: "Products" },
-    { path: "/order_delivery", icon: "shopping_cart", label: "Order & Delivery" },
   ]
+
+  const toggleOrderDropdown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setShowOrderDropdown(!showOrderDropdown)
+  }
+
+  // Check if current route is order or delivery
+  const isOrderActive = location.pathname === "/order" || location.pathname === "/delivery"
 
   return (
     <nav
@@ -34,6 +46,34 @@ function NavBar({ isOpen, isMobile, isHidden }) {
             </NavLink>
           )
         })}
+
+        {/* Order & Delivery Dropdown */}
+        <div className="nav-dropdown-container">
+          <button
+            className={`nav-item dropdown-toggle ${isOrderActive ? "active" : ""} ${!isOpen ? "collapsed" : ""}`}
+            onClick={toggleOrderDropdown}
+          >
+            <span className="material-icons nav-icon">shopping_cart</span>
+            <span className="nav-label">Order & Delivery</span>
+            <span className="material-icons dropdown-icon">{showOrderDropdown ? "expand_less" : "expand_more"}</span>
+          </button>
+
+          {showOrderDropdown && (
+            <div className="nav-dropdown">
+              <NavLink to="/order" className={`nav-dropdown-item ${location.pathname === "/order" ? "active" : ""}`}>
+                <span className="material-icons nav-icon">receipt</span>
+                <span className="nav-label">Order</span>
+              </NavLink>
+              <NavLink
+                to="/delivery"
+                className={`nav-dropdown-item ${location.pathname === "/delivery" ? "active" : ""}`}
+              >
+                <span className="material-icons nav-icon">local_shipping</span>
+                <span className="nav-label">Delivery</span>
+              </NavLink>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   )

@@ -137,10 +137,13 @@ export default function UserManagement({ users, loading, setUsers }) {
       const userToArchive = users.find((user) => user.id === id)
       if (!userToArchive) throw new Error("User not found")
 
+      // Create a copy of the user object with updated status
+      const updatedUser = { ...userToArchive, status: "archived" }
+
       const response = await fetch(`${API_URL}/users/${id}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...userToArchive, status: "archived" }),
+        body: JSON.stringify(updatedUser),
       })
 
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
@@ -149,6 +152,7 @@ export default function UserManagement({ users, loading, setUsers }) {
       setUsers(users.map((user) => (user.id === id ? data : user)))
       toast.success("User archived successfully!")
     } catch (error) {
+      console.error("Archive error:", error)
       toast.error(`Failed to archive user: ${error.message || "Unknown error"}`)
     }
   }
@@ -165,10 +169,13 @@ export default function UserManagement({ users, loading, setUsers }) {
       const userToUnarchive = users.find((user) => user.id === id)
       if (!userToUnarchive) throw new Error("User not found")
 
+      // Create a copy of the user object with updated status
+      const updatedUser = { ...userToUnarchive, status: "active" }
+
       const response = await fetch(`${API_URL}/users/${id}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...userToUnarchive, status: "active" }),
+        body: JSON.stringify(updatedUser),
       })
 
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
@@ -177,6 +184,7 @@ export default function UserManagement({ users, loading, setUsers }) {
       setUsers(users.map((user) => (user.id === id ? data : user)))
       toast.success("User unarchived successfully!")
     } catch (error) {
+      console.error("Unarchive error:", error)
       toast.error(`Failed to unarchive user: ${error.message || "Unknown error"}`)
     }
   }

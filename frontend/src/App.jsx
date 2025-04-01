@@ -10,7 +10,8 @@ import LoginPage from "./pages/LoginPage"
 import LocalStorePage from "./pages/LocalStorePage"
 import InventoryPage from "./pages/InventoryPage"
 import ProductPage from "./pages/ProductsPage"
-import Order_DeliveryPage from "./pages/Order_DeliveryPage"
+import OrderPage from "./pages/OrderPage"
+import DeliveryPage from "./pages/DeliveryPage"
 import DashboardPage from "./pages/DashboardPage"
 import UserPage from "./pages/UserPage"
 import { toast } from "react-toastify"
@@ -133,7 +134,8 @@ function App() {
           <Route path="/localstore" element={<PrivateRoute element={<LocalStorePage />} />} />
           <Route path="/inventory" element={<PrivateRoute element={<InventoryPage />} />} />
           <Route path="/products" element={<PrivateRoute element={<ProductPage />} />} />
-          <Route path="/order_delivery" element={<PrivateRoute element={<Order_DeliveryPage />} />} />
+          <Route path="/order" element={<PrivateRoute element={<OrderPage />} />} />
+          <Route path="/delivery" element={<PrivateRoute element={<DeliveryPage />} />} />
           <Route
             path="/user"
             element={<PrivateRoute element={<UserPage users={users} loading={loading} setUsers={setUsers} />} />}
