@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { toast } from "react-toastify"
-import { API_URL } from "../api/api_url"
+import api from "../api/api_url"
 import { Archive, Download, Edit, RefreshCcw, Search, UserPlus } from "lucide-react"
 
 // Import shadcn components
@@ -71,22 +71,17 @@ export default function UserManagement({ users, loading, setUsers }) {
           if (isDuplicateEmail) throw new Error("Email is already taken.")
 
           // Determine the API URL and method
-          const url = userForm.id ? `${API_URL}/users/${userForm.id}/` : `${API_URL}/users/`
-          const method = userForm.id ? "PUT" : "POST"
+          const url = userForm.id ? `/users/${userForm.id}/` : `/users/`
+          const method = userForm.id ? "put" : "post"
 
-          // Make the API call
-          const response = await fetch(url, {
+          // Make the API call using axios instance
+          const response = await api({
+            url,
             method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(userForm),
+            data: userForm
           })
 
-          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.message || "Failed to save user")
-          }
-
-          const data = await response.json()
+          const data = response.data
           if (userForm.id) {
             setUsers(users.map((user) => (user.id === userForm.id ? data : user)))
           } else {
@@ -97,7 +92,12 @@ export default function UserManagement({ users, loading, setUsers }) {
           setIsUserModalOpen(false)
           resetUserForm()
         } catch (error) {
-          toast.error(`Failed to save user: ${error.message || "Unknown error"}`)
+          console.error('User save error:', error.response || error)
+          const errorMsg = error.response?.data?.message || 
+                         error.response?.data?.detail || 
+                         error.message || 
+                         "Failed to save user"
+          toast.error(errorMsg)
         } finally {
           setIsLoading(false)
         }
@@ -140,20 +140,18 @@ export default function UserManagement({ users, loading, setUsers }) {
       // Create a copy of the user object with updated status
       const updatedUser = { ...userToArchive, status: "archived" }
 
-      const response = await fetch(`${API_URL}/users/${id}/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
-      })
+      const response = await api.put(`/users/${id}/`, updatedUser)
 
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
-
-      const data = await response.json()
+      const data = response.data
       setUsers(users.map((user) => (user.id === id ? data : user)))
       toast.success("User archived successfully!")
     } catch (error) {
-      console.error("Archive error:", error)
-      toast.error(`Failed to archive user: ${error.message || "Unknown error"}`)
+      console.error("Archive error:", error.response || error)
+      const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.detail || 
+                     error.message || 
+                     "Failed to archive user"
+      toast.error(errorMsg)
     }
   }
 
@@ -172,20 +170,18 @@ export default function UserManagement({ users, loading, setUsers }) {
       // Create a copy of the user object with updated status
       const updatedUser = { ...userToUnarchive, status: "active" }
 
-      const response = await fetch(`${API_URL}/users/${id}/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
-      })
+      const response = await api.put(`/users/${id}/`, updatedUser)
 
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
-
-      const data = await response.json()
+      const data = response.data
       setUsers(users.map((user) => (user.id === id ? data : user)))
       toast.success("User unarchived successfully!")
     } catch (error) {
-      console.error("Unarchive error:", error)
-      toast.error(`Failed to unarchive user: ${error.message || "Unknown error"}`)
+      console.error("Unarchive error:", error.response || error)
+      const errorMsg = error.response?.data?.message || 
+                     error.response?.data?.detail || 
+                     error.message || 
+                     "Failed to unarchive user"
+      toast.error(errorMsg)
     }
   }
 
@@ -624,4 +620,3 @@ export default function UserManagement({ users, loading, setUsers }) {
     </Card>
   )
 }
-

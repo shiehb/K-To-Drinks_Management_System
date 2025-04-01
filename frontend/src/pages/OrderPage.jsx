@@ -1,11 +1,20 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
 import { Search, Plus, Minus } from "lucide-react"
+import { useAuth } from "../context/AuthContext"
 import "../css/order.css"
+import api from "../api/api_url"
+
+// Import your product images
+import cokeImg from "../css/products/coke.webp"
+import lemonDouImg from "../css/products/lemon-dou.webp"
+import spriteImg from "../css/products/sprite.webp"
+import royalImg from "../css/products/royal.webp"
+import wilkinsImg from "../css/products/wilkins.webp"
 
 export default function OrderPage() {
+  const { darkMode, toggleDarkMode } = useAuth()
+  
   // State for store selection
   const [selectedStore, setSelectedStore] = useState("")
   const [stores, setStores] = useState([])
@@ -14,11 +23,11 @@ export default function OrderPage() {
   // State for product search and selection
   const [searchQuery, setSearchQuery] = useState("")
   const [categories, setCategories] = useState([
-    { id: 1, name: "Coke", href: "../css/products/coke.webp" },
-    { id: 2, name: "Lemon Dou", href: "../css/products/lemon-dou.webp" },
-    { id: 3, name: "Sprite", href: "../css/products/sprite.webp" },
-    { id: 4, name: "Royal", href: "../css/products/royal.webp" },
-    { id: 5, name: "Wilkins", href: "./css/products/wilkins.webp" },
+    { id: 1, name: "Coke", img: cokeImg },
+    { id: 2, name: "Lemon Dou", img: lemonDouImg },
+    { id: 3, name: "Sprite", img: spriteImg },
+    { id: 4, name: "Royal", img: royalImg },
+    { id: 5, name: "Wilkins", img: wilkinsImg },
   ])
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [products, setProducts] = useState([])
@@ -26,84 +35,154 @@ export default function OrderPage() {
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [availableStock, setAvailableStock] = useState(0)
-
-  // State for order items
   const [orderItems, setOrderItems] = useState([])
-
-  // State for size selection
-  const [selectedSize, setSelectedSize] = useState("large")
-  const availableSizes = ['250 ml', '300 ml', '400 ml', '600 ml', '750 ml', '1250 ml', '1500 ml', '1750 ml', '2000 ml']
-
-  // Tax rate
+  const [selectedSize, setSelectedSize] = useState("")
   const TAX_RATE = 2.0
 
- // Fetch stores on component mount
- useEffect(() => {
-  fetchStores()
-}, [])
-
-// Fetch products when category changes
-useEffect(() => {
-  if (selectedCategory) {
-    fetchProducts(selectedCategory.id)
-  }
-}, [selectedCategory])
-
-// Replace the mock fetchStores function with a real API call
-const fetchStores = async () => {
-  setStoresLoading(true)
-  try {
-    // Make a real API call to the backend
-    const response = await api.get("/stores/")
-
-    // Process the response data
-    const storeData = response.data.map((store) => ({
-      id: store.id,
-      name: store.name,
-    }))
-
-    setStores(storeData)
-
-    // If stores were fetched successfully, select the first one by default
-    if (storeData.length > 0) {
-      setSelectedStore(storeData[0].id.toString())
+  // Get available sizes based on selected category
+  const getAvailableSizesForCategory = (categoryId) => {
+    switch(categoryId) {
+      case 1: // Coke
+        return ['1.5L', '1L', '237ml', 'mismo (pet bottle)', 'swakto (pet bottle)'];
+      case 2: // Lemon Dou
+        return ['1.5L', '1L', '237ml', 'mismo (pet bottle)', 'swakto (pet bottle)'];
+      case 3: // Sprite
+        return ['1.5L', '1L', '237ml', 'mismo (pet bottle)', 'swakto (pet bottle)'];
+      case 4: // Royal
+        return ['1.5L', '1L', '237ml', 'mismo (pet bottle)', 'swakto (pet bottle)'];
+      case 5: // Wilkins
+        return ['7L', '1L', '500ml', '330ml'];
+      default:
+        return [];
     }
-  } catch (error) {
-    console.error("Error fetching stores:", error)
-    toast.error("Failed to load stores from the backend")
+  };
 
-    // Fallback to empty array if the API call fails
-    setStores([])
-  } finally {
-    setStoresLoading(false)
-  }
-}
-  // Mock function to fetch products
-  const fetchProducts = async (categoryId) => {
-    setProductsLoading(true)
+  useEffect(() => {
+    fetchStores()
+  }, [])
+
+  useEffect(() => {
+    if (selectedCategory) {
+      fetchProducts(selectedCategory.id)
+      setSelectedSize('')
+      setSelectedProduct(null)
+    }
+  }, [selectedCategory])
+
+  useEffect(() => {
+    if (selectedSize && products.length > 0) {
+      const productForSize = products.find(p => p.size === selectedSize);
+      if (productForSize) {
+        setSelectedProduct(productForSize);
+        setAvailableStock(productForSize.stock);
+      }
+    }
+  }, [selectedSize, products])
+
+  const fetchStores = async () => {
+    setStoresLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // Mock data
-      const mockProducts = [
-        { id: 1, name: "Laptop - Model X", price: 800.0, stock: 45747 },
-        { id: 2, name: "Smartphone - Model Y", price: 600.0, stock: 32500 },
-        { id: 3, name: "Wireless Headphones", price: 100.0, stock: 15000 },
-        { id: 4, name: "External Hard Drive - 2TB", price: 120.0, stock: 8900 },
-        { id: 5, name: "Tablet - Model Z", price: 400.0, stock: 12300 },
-      ]
-
-      setProducts(mockProducts)
-      setAvailableStock(mockProducts[0].stock)
-      setSelectedProduct(mockProducts[0])
+      const response = await api.get("/stores/")
+      const storeData = response.data.map((store) => ({
+        id: store.id,
+        name: store.name,
+      }))
+      setStores(storeData)
+      if (storeData.length > 0) {
+        setSelectedStore(storeData[0].id.toString())
+      }
     } catch (error) {
-      console.error("Error fetching products:", error)
-      toast.error("Failed to load products")
+      console.error("Error fetching stores:", error)
+      toast.error("Failed to load stores")
+      setStores([])
     } finally {
-      setProductsLoading(false)
+      setStoresLoading(false)
     }
   }
+
+  const fetchProducts = async (categoryId) => {
+    setProductsLoading(true);
+    try {
+      // First try to fetch from API
+      try {
+        const response = await api.get(`/products?category_id=${categoryId}`);
+        
+        if (response.data && response.data.length > 0) {
+          const productsData = response.data.map(product => ({
+            id: product.id,
+            name: product.brand,
+            price: parseFloat(product.price),
+            stock: parseInt(product.stock_quantity),
+            size: product.size,
+            category: product.category_id
+          }));
+  
+          setProducts(productsData);
+          return;
+        }
+      } catch (apiError) {
+        console.log("Falling back to mock data due to API error:", apiError);
+      }
+  
+      // Fallback to mock data if API fails
+      let mockProducts = [];
+      switch(categoryId) {
+        case 1: // Coke
+          mockProducts = [
+            { id: 1, name: "Coke", price: 55.0, stock: 100, size: "1.5L" },
+            { id: 2, name: "Coke", price: 40.0, stock: 150, size: "1L" },
+            { id: 3, name: "Coke", price: 20.0, stock: 200, size: "237ml" },
+            { id: 4, name: "Coke", price: 15.0, stock: 180, size: "mismo (pet bottle)" },
+            { id: 5, name: "Coke", price: 12.0, stock: 120, size: "swakto (pet bottle)" }
+          ];
+          break;
+        case 2: // Lemon Dou
+          mockProducts = [
+            { id: 6, name: "Lemon Dou", price: 60.0, stock: 80, size: "330 (can)"},
+            { id: 7, name: "Lemon Dou", price: 45.0, stock: 90, size: "1L" },
+            { id: 8, name: "Lemon Dou", price: 25.0, stock: 150, size: "237ml" },
+            { id: 9, name: "Lemon Dou", price: 18.0, stock: 100, size: "mismo (pet bottle)" },
+            { id: 10, name: "Lemon Dou", price: 15.0, stock: 110, size: "swakto (pet bottle)" }
+          ];
+          break;
+        case 3: // Sprite
+          mockProducts = [
+            { id: 11, name: "Sprite", price: 50.0, stock: 120, size: "1.5L" },
+            { id: 12, name: "Sprite", price: 38.0, stock: 140, size: "1L" },
+            { id: 13, name: "Sprite", price: 18.0, stock: 180, size: "237ml" },
+            { id: 14, name: "Sprite", price: 14.0, stock: 160, size: "mismo (pet bottle)" },
+            { id: 15, name: "Sprite", price: 12.0, stock: 130, size: "swakto (pet bottle)" }
+          ];
+          break;
+        case 4: // Royal
+          mockProducts = [
+            { id: 16, name: "Royal", price: 52.0, stock: 90, size: "1.5L" },
+            { id: 17, name: "Royal", price: 39.0, stock: 110, size: "1L" },
+            { id: 18, name: "Royal", price: 19.0, stock: 160, size: "237ml" },
+            { id: 19, name: "Royal", price: 15.0, stock: 140, size: "mismo (pet bottle)" },
+            { id: 20, name: "Royal", price: 13.0, stock: 100, size: "swakto (pet bottle)" }
+          ];
+          break;
+        case 5: // Wilkins
+          mockProducts = [
+            { id: 21, name: "Wilkins Distilled", price: 120.0, stock: 50, size: "7L" },
+            { id: 22, name: "Wilkins Distilled", price: 25.0, stock: 200, size: "1L" },
+            { id: 23, name: "Wilkins Distilled", price: 15.0, stock: 180, size: "500ml" },
+            { id: 24, name: "Wilkins Distilled", price: 12.0, stock: 150, size: "330ml" },
+          ];
+          break;
+        default:
+          mockProducts = [];
+      }
+  
+      setProducts(mockProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast.error("Failed to load products");
+    } finally {
+      setProductsLoading(false);
+    }
+  };
 
   // Handle quantity change
   const handleQuantityChange = (value) => {
@@ -123,32 +202,44 @@ const fetchStores = async () => {
       return
     }
 
+    if (!selectedSize) {
+      toast.error("Please select a size")
+      return
+    }
+
+    // Create a unique key combining product ID and size
+    const itemKey = `${selectedProduct.id}-${selectedSize}`;
+
     // Check if item already exists in order
-    const existingItemIndex = orderItems.findIndex((item) => item.id === selectedProduct.id)
+    const existingItemIndex = orderItems.findIndex(
+      (item) => item.key === itemKey
+    );
 
     if (existingItemIndex >= 0) {
       // Update quantity if item exists
-      const updatedItems = [...orderItems]
-      updatedItems[existingItemIndex].quantity += quantity
-      updatedItems[existingItemIndex].total =
-        updatedItems[existingItemIndex].quantity * updatedItems[existingItemIndex].price
-      setOrderItems(updatedItems)
+      const updatedItems = [...orderItems];
+      updatedItems[existingItemIndex].quantity += quantity;
+      updatedItems[existingItemIndex].total = 
+        updatedItems[existingItemIndex].quantity * updatedItems[existingItemIndex].unitPrice;
+      setOrderItems(updatedItems);
     } else {
-      // Add new item
+      // Add new item with size information
       const newItem = {
+        key: itemKey,
         id: selectedProduct.id,
-        description: selectedProduct.name,
+        description: `${selectedProduct.name} ${selectedSize}`,
         quantity: quantity,
         unitPrice: selectedProduct.price,
         total: selectedProduct.price * quantity,
-      }
+        size: selectedSize
+      };
 
-      setOrderItems([...orderItems, newItem])
+      setOrderItems([...orderItems, newItem]);
     }
 
     // Reset quantity
-    setQuantity(1)
-    toast.success("Item added to order")
+    setQuantity(1);
+    toast.success("Item added to order");
   }
 
   // Handle completing the order
@@ -166,15 +257,16 @@ const fetchStores = async () => {
     setQuantity(1)
     setSelectedProduct(null)
     setSelectedCategory(null)
+    setSelectedSize("")
   }
 
-  // Calculate order totals
-  const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0)
+  // Calculate order totals with proper number handling
+  const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
   const taxAmount = (subtotal * TAX_RATE) / 100
   const totalAmount = subtotal + taxAmount
 
   return (
-    <div className="order-page">
+    <div className={`order-page ${darkMode ? 'dark' : ''}`}>
       <div className="order-container">
         <div className="product-selection">
           <div className="search-section">
@@ -189,7 +281,11 @@ const fetchStores = async () => {
             </div>
 
             <div className="store-selector">
-              <select value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)} className="store-select">
+              <select 
+                value={selectedStore} 
+                onChange={(e) => setSelectedStore(e.target.value)} 
+                className="store-select"
+              >
                 <option value="">STORE NAME</option>
                 {stores.map((store) => (
                   <option key={store.id} value={store.id}>
@@ -209,8 +305,14 @@ const fetchStores = async () => {
                   className={`category-item ${selectedCategory?.id === category.id ? "selected" : ""}`}
                   onClick={() => setSelectedCategory(category)}
                 >
-                  <div className="category-icon">
-                    <img src={`/placeholder.svg?height=40&width=40`} alt={category.name} />
+                  <div className="category-img">
+                    <img 
+                      src={category.img} 
+                      alt={category.name} 
+                      onError={(e) => {
+                        e.target.src = '/placeholder.svg';
+                      }}
+                    />
                   </div>
                   <span className="category-name">{category.name}</span>
                 </div>
@@ -219,17 +321,32 @@ const fetchStores = async () => {
           </div>
 
           <div className="size-section">
-            <div className="size-options">
-              {availableSizes.map((size, index) => (
-                <button
-                  key={index}
-                  className={`size-button ${selectedSize === size ? "selected" : ""}`}
-                  onClick={() => setSelectedSize(size)}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
+            {selectedCategory && (
+              <>
+                <h4 className="size-title">AVAILABLE SIZES</h4>
+                <div className="size-options">
+                  {getAvailableSizesForCategory(selectedCategory.id).map((size, index) => {
+                    const productForSize = products.find(p => p.size === size);
+                    return (
+                      <button
+                        key={index}
+                        className={`size-button ${selectedSize === size ? "selected" : ""}`}
+                        onClick={() => {
+                          setSelectedSize(size);
+                          if (productForSize) {
+                            setSelectedProduct(productForSize);
+                            setAvailableStock(productForSize.stock);
+                          }
+                        }}
+                        disabled={!productForSize}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="quantity-section">
@@ -283,12 +400,12 @@ const fetchStores = async () => {
               </thead>
               <tbody>
                 {orderItems.length > 0 ? (
-                  orderItems.map((item, index) => (
-                    <tr key={index}>
+                  orderItems.map((item) => (
+                    <tr key={item.key}>
                       <td>{item.description}</td>
                       <td>{item.quantity}</td>
-                      <td>${item.unitPrice.toFixed(2)}</td>
-                      <td>${item.total.toFixed(2)}</td>
+                      <td>₱{item.unitPrice.toFixed(2)}</td>
+                      <td>₱{item.total.toFixed(2)}</td>
                     </tr>
                   ))
                 ) : (
@@ -314,13 +431,16 @@ const fetchStores = async () => {
           <div className="order-notes">
             <div className="notes-section">
               <h4>NOTES</h4>
-              <textarea className="notes-input" placeholder="Add notes here..."></textarea>
+              <textarea 
+                className="notes-input" 
+                placeholder="Add notes here..."
+              ></textarea>
             </div>
 
             <div className="order-totals">
               <div className="total-row">
                 <span>SUBTOTAL</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>₱{subtotal.toFixed(2)}</span>
               </div>
               <div className="total-row">
                 <span>TAX RATE</span>
@@ -328,11 +448,11 @@ const fetchStores = async () => {
               </div>
               <div className="total-row">
                 <span>TAX AMOUNT</span>
-                <span>${taxAmount.toFixed(2)}</span>
+                <span>₱{taxAmount.toFixed(2)}</span>
               </div>
               <div className="total-row grand-total">
                 <span>TOTAL AMOUNT DUE</span>
-                <span>${totalAmount.toFixed(2)}</span>
+                <span>₱{totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -347,4 +467,3 @@ const fetchStores = async () => {
     </div>
   )
 }
-
