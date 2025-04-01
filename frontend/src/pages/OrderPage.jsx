@@ -1,43 +1,51 @@
-import { useState, useEffect } from "react"
-import { toast } from "react-toastify"
-import { Search, Plus, Minus } from "lucide-react"
-import { useAuth } from "../context/AuthContext"
-import "../css/order.css"
-import api from "../api/api_url"
+import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { Search, Plus, Minus } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import "../css/order.css";
+import api from "../api/api_url";
 
 // Import your product images
-import cokeImg from "../css/products/coke.webp"
-import lemonDouImg from "../css/products/lemon-dou.webp"
-import spriteImg from "../css/products/sprite.webp"
-import royalImg from "../css/products/royal.webp"
-import wilkinsImg from "../css/products/wilkins.webp"
+import cokeImg from "../css/products/coke.webp";
+import lemonDouImg from "../css/products/lemon-dou.webp";
+import spriteImg from "../css/products/sprite.webp";
+import royalImg from "../css/products/royal.webp";
+import wilkinsImg from "../css/products/wilkins.webp";
 
 export default function OrderPage() {
-  const { darkMode, toggleDarkMode } = useAuth()
+  const { darkMode, toggleDarkMode } = useAuth();
   
   // State for store selection
-  const [selectedStore, setSelectedStore] = useState("")
-  const [stores, setStores] = useState([])
-  const [storesLoading, setStoresLoading] = useState(false)
+  const [selectedStore, setSelectedStore] = useState("");
+  const [stores, setStores] = useState([]);
+  const [storesLoading, setStoresLoading] = useState(false);
 
   // State for product search and selection
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categories, setCategories] = useState([
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categories] = useState([
     { id: 1, name: "Coke", img: cokeImg },
     { id: 2, name: "Lemon Dou", img: lemonDouImg },
     { id: 3, name: "Sprite", img: spriteImg },
     { id: 4, name: "Royal", img: royalImg },
     { id: 5, name: "Wilkins", img: wilkinsImg },
-  ])
-  const [selectedCategory, setSelectedCategory] = useState(null)
-  const [products, setProducts] = useState([])
-  const [productsLoading, setProductsLoading] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState(null)
-  const [quantity, setQuantity] = useState(1)
-  const [availableStock, setAvailableStock] = useState(0)
-  const [orderItems, setOrderItems] = useState([])
-  const [selectedSize, setSelectedSize] = useState("")
-  const TAX_RATE = 2.0
+  ]);
+  const [filteredCategories, setFilteredCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [availableStock, setAvailableStock] = useState(0);
+  const [orderItems, setOrderItems] = useState([]);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [packagingType, setPackagingType] = useState("perBottle");
+  const [caseQuantity, setCaseQuantity] = useState(12);
+  const TAX_RATE = 2.0;
+
+  // Initialize filtered categories
+  useEffect(() => {
+    setFilteredCategories(categories);
+  }, [categories]);
 
   // Get available sizes based on selected category
   const getAvailableSizesForCategory = (categoryId) => {
@@ -57,17 +65,38 @@ export default function OrderPage() {
     }
   };
 
+  // Update case quantity based on selected size
   useEffect(() => {
-    fetchStores()
-  }, [])
+    if (selectedSize) {
+      if (selectedSize.includes("237ml")) {
+        setCaseQuantity(24);
+      } else if (selectedSize.includes("1L")) {
+        setCaseQuantity(12);
+      } else if (selectedSize.includes("1.5L")) {
+        setCaseQuantity(6);
+      } else if (selectedSize.includes("500ml")) {
+        setCaseQuantity(24);
+      } else if (selectedSize.includes("330ml")) {
+        setCaseQuantity(24);
+      } else if (selectedSize.includes("7L")) {
+        setCaseQuantity(1);
+      } else {
+        setCaseQuantity(12); // Default
+      }
+    }
+  }, [selectedSize]);
+
+  useEffect(() => {
+    fetchStores();
+  }, []);
 
   useEffect(() => {
     if (selectedCategory) {
-      fetchProducts(selectedCategory.id)
-      setSelectedSize('')
-      setSelectedProduct(null)
+      fetchProducts(selectedCategory.id);
+      setSelectedSize('');
+      setSelectedProduct(null);
     }
-  }, [selectedCategory])
+  }, [selectedCategory]);
 
   useEffect(() => {
     if (selectedSize && products.length > 0) {
@@ -77,28 +106,96 @@ export default function OrderPage() {
         setAvailableStock(productForSize.stock);
       }
     }
-  }, [selectedSize, products])
+  }, [selectedSize, products]);
 
   const fetchStores = async () => {
-    setStoresLoading(true)
+    setStoresLoading(true);
     try {
-      const response = await api.get("/stores/")
+      const response = await api.get("/stores/");
       const storeData = response.data.map((store) => ({
         id: store.id,
         name: store.name,
-      }))
-      setStores(storeData)
+      }));
+      setStores(storeData);
       if (storeData.length > 0) {
-        setSelectedStore(storeData[0].id.toString())
+        setSelectedStore(storeData[0].id.toString());
       }
     } catch (error) {
-      console.error("Error fetching stores:", error)
-      toast.error("Failed to load stores")
-      setStores([])
+      console.error("Error fetching stores:", error);
+      toast.error("Failed to load stores");
+      setStores([]);
     } finally {
-      setStoresLoading(false)
+      setStoresLoading(false);
     }
-  }
+  };
+
+  // Handle search input changes
+  const handleSearchChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    if (query === "") {
+      setFilteredCategories(categories);
+      return;
+    }
+
+    const matchedCategories = categories.filter(category => 
+      category.name.toLowerCase().includes(query)
+    );
+
+    // If no exact matches, find the closest match using Levenshtein distance
+    if (matchedCategories.length === 0) {
+      const closestMatch = findClosestMatch(query, categories);
+      if (closestMatch) {
+        setFilteredCategories([closestMatch]);
+      } else {
+        setFilteredCategories([]);
+      }
+    } else {
+      setFilteredCategories(matchedCategories);
+    }
+  };
+
+  // Levenshtein distance algorithm for finding closest match
+  const findClosestMatch = (query, categories) => {
+    let minDistance = Infinity;
+    let closestMatch = null;
+    
+    categories.forEach(category => {
+      const distance = levenshteinDistance(query, category.name.toLowerCase());
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestMatch = category;
+      }
+    });
+
+    return minDistance < 3 ? closestMatch : null;
+  };
+
+  // Calculate Levenshtein distance between two strings
+  const levenshteinDistance = (a, b) => {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j;
+    }
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1,    // insertion
+            matrix[i - 1][j] + 1     // deletion
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  };
 
   const fetchProducts = async (categoryId) => {
     setProductsLoading(true);
@@ -138,7 +235,7 @@ export default function OrderPage() {
           break;
         case 2: // Lemon Dou
           mockProducts = [
-            { id: 6, name: "Lemon Dou", price: 60.0, stock: 80, size: "330 (can)"},
+            { id: 6, name: "Lemon Dou", price: 60.0, stock: 80, size: "1.5L" },
             { id: 7, name: "Lemon Dou", price: 45.0, stock: 90, size: "1L" },
             { id: 8, name: "Lemon Dou", price: 25.0, stock: 150, size: "237ml" },
             { id: 9, name: "Lemon Dou", price: 18.0, stock: 100, size: "mismo (pet bottle)" },
@@ -169,6 +266,10 @@ export default function OrderPage() {
             { id: 22, name: "Wilkins Distilled", price: 25.0, stock: 200, size: "1L" },
             { id: 23, name: "Wilkins Distilled", price: 15.0, stock: 180, size: "500ml" },
             { id: 24, name: "Wilkins Distilled", price: 12.0, stock: 150, size: "330ml" },
+            { id: 25, name: "Wilkins Purified", price: 110.0, stock: 60, size: "7L" },
+            { id: 26, name: "Wilkins Purified", price: 23.0, stock: 190, size: "1L" },
+            { id: 27, name: "Wilkins Purified", price: 14.0, stock: 170, size: "500ml" },
+            { id: 28, name: "Wilkins Purified", price: 11.0, stock: 140, size: "330ml" }
           ];
           break;
         default:
@@ -184,86 +285,82 @@ export default function OrderPage() {
     }
   };
 
-  // Handle quantity change
   const handleQuantityChange = (value) => {
-    const newQuantity = Math.max(1, Math.min(value, availableStock))
-    setQuantity(newQuantity)
-  }
+    let maxQuantity = availableStock;
+    if (packagingType === "perCase") {
+      maxQuantity = Math.floor(availableStock / caseQuantity);
+    }
+    const newQuantity = Math.max(1, Math.min(value, maxQuantity));
+    setQuantity(newQuantity);
+  };
 
-  // Handle adding item to order
   const handleAddToOrder = () => {
     if (!selectedProduct) {
-      toast.error("Please select a product")
-      return
+      toast.error("Please select a product");
+      return;
     }
 
     if (!selectedStore) {
-      toast.error("Please select a store")
-      return
+      toast.error("Please select a store");
+      return;
     }
 
     if (!selectedSize) {
-      toast.error("Please select a size")
-      return
+      toast.error("Please select a size");
+      return;
     }
 
-    // Create a unique key combining product ID and size
-    const itemKey = `${selectedProduct.id}-${selectedSize}`;
+    const actualQuantity = packagingType === "perCase" ? quantity * caseQuantity : quantity;
+    const actualTotal = selectedProduct.price * actualQuantity;
 
-    // Check if item already exists in order
+    const itemKey = `${selectedProduct.id}-${selectedSize}-${packagingType}`;
+
     const existingItemIndex = orderItems.findIndex(
       (item) => item.key === itemKey
     );
 
     if (existingItemIndex >= 0) {
-      // Update quantity if item exists
       const updatedItems = [...orderItems];
-      updatedItems[existingItemIndex].quantity += quantity;
+      updatedItems[existingItemIndex].quantity += actualQuantity;
       updatedItems[existingItemIndex].total = 
         updatedItems[existingItemIndex].quantity * updatedItems[existingItemIndex].unitPrice;
       setOrderItems(updatedItems);
     } else {
-      // Add new item with size information
       const newItem = {
         key: itemKey,
         id: selectedProduct.id,
-        description: `${selectedProduct.name} ${selectedSize}`,
-        quantity: quantity,
+        description: `${selectedProduct.name} ${selectedSize} (${packagingType === "perCase" ? "Case" : "Bottle"})`,
+        quantity: actualQuantity,
         unitPrice: selectedProduct.price,
-        total: selectedProduct.price * quantity,
-        size: selectedSize
+        total: actualTotal,
+        size: selectedSize,
+        packagingType: packagingType
       };
 
       setOrderItems([...orderItems, newItem]);
     }
 
-    // Reset quantity
     setQuantity(1);
     toast.success("Item added to order");
-  }
+  };
 
-  // Handle completing the order
   const handleCompleteOrder = () => {
     if (orderItems.length === 0) {
-      toast.error("Please add items to your order")
-      return
+      toast.error("Please add items to your order");
+      return;
     }
 
-    // Here you would typically send the order to your backend
-    toast.success("Order submitted successfully!")
+    toast.success("Order submitted successfully!");
+    setOrderItems([]);
+    setQuantity(1);
+    setSelectedProduct(null);
+    setSelectedCategory(null);
+    setSelectedSize("");
+  };
 
-    // Reset order
-    setOrderItems([])
-    setQuantity(1)
-    setSelectedProduct(null)
-    setSelectedCategory(null)
-    setSelectedSize("")
-  }
-
-  // Calculate order totals with proper number handling
-  const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
-  const taxAmount = (subtotal * TAX_RATE) / 100
-  const totalAmount = subtotal + taxAmount
+  const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+  const taxAmount = (subtotal * TAX_RATE) / 100;
+  const totalAmount = subtotal + taxAmount;
 
   return (
     <div className={`order-page ${darkMode ? 'dark' : ''}`}>
@@ -275,7 +372,7 @@ export default function OrderPage() {
                 type="text"
                 placeholder="SEARCH"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
               />
               <Search className="search-icon" />
             </div>
@@ -298,26 +395,34 @@ export default function OrderPage() {
 
           <div className="categories-section">
             <h3 className="section-title">CATEGORIES</h3>
-            <div className="categories-grid">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className={`category-item ${selectedCategory?.id === category.id ? "selected" : ""}`}
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  <div className="category-img">
-                    <img 
-                      src={category.img} 
-                      alt={category.name} 
-                      onError={(e) => {
-                        e.target.src = '/placeholder.svg';
-                      }}
-                    />
+            {filteredCategories.length === 0 ? (
+              <div className="no-results">No matching categories found</div>
+            ) : (
+              <div className="categories-grid">
+                {filteredCategories.map((category) => (
+                  <div
+                    key={category.id}
+                    className={`category-item ${selectedCategory?.id === category.id ? "selected" : ""}`}
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setSearchQuery("");
+                      setFilteredCategories(categories);
+                    }}
+                  >
+                    <div className="category-img">
+                      <img 
+                        src={category.img} 
+                        alt={category.name} 
+                        onError={(e) => {
+                          e.target.src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
+                    <span className="category-name">{category.name}</span>
                   </div>
-                  <span className="category-name">{category.name}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="size-section">
@@ -341,9 +446,44 @@ export default function OrderPage() {
                         disabled={!productForSize}
                       >
                         {size}
+                        {productForSize && (
+                          <span className="size-price">₱{productForSize.price.toFixed(2)}</span>
+                        )}
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="packaging-section">
+                  <h4 className="packaging-title">PACKAGING</h4>
+                  <div className="packaging-options">
+                    <label className="packaging-option">
+                      <input
+                        type="radio"
+                        name="packaging"
+                        value="perBottle"
+                        checked={packagingType === "perBottle"}
+                        onChange={() => {
+                          setPackagingType("perBottle");
+                          setQuantity(1);
+                        }}
+                      />
+                      Per Bottle
+                    </label>
+                    <label className="packaging-option">
+                      <input
+                        type="radio"
+                        name="packaging"
+                        value="perCase"
+                        checked={packagingType === "perCase"}
+                        onChange={() => {
+                          setPackagingType("perCase");
+                          setQuantity(1);
+                        }}
+                      />
+                      Per Case ({caseQuantity} {caseQuantity === 1 ? 'bottle' : 'bottles'})
+                    </label>
+                  </div>
                 </div>
               </>
             )}
@@ -365,18 +505,22 @@ export default function OrderPage() {
                 onChange={(e) => handleQuantityChange(Number.parseInt(e.target.value) || 1)}
                 className="quantity-input"
                 min="1"
-                max={availableStock}
+                max={packagingType === "perCase" ? Math.floor(availableStock / caseQuantity) : availableStock}
               />
 
               <button
                 className="quantity-button"
                 onClick={() => handleQuantityChange(quantity + 1)}
-                disabled={quantity >= availableStock}
+                disabled={quantity >= (packagingType === "perCase" ? Math.floor(availableStock / caseQuantity) : availableStock)}
               >
                 <Plus size={20} />
               </button>
 
-              <span className="stock-info">{availableStock} available stocks</span>
+              <span className="stock-info">
+                {packagingType === "perCase" 
+                  ? `${Math.floor(availableStock / caseQuantity)} cases available` 
+                  : `${availableStock} bottles available`}
+              </span>
             </div>
           </div>
 
@@ -415,7 +559,6 @@ export default function OrderPage() {
                     </td>
                   </tr>
                 )}
-                {/* Empty rows to fill space */}
                 {Array.from({ length: Math.max(0, 5 - orderItems.length) }).map((_, index) => (
                   <tr key={`empty-${index}`} className="empty-row">
                     <td></td>
@@ -465,5 +608,5 @@ export default function OrderPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
