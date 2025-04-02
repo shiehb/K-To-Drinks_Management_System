@@ -1,55 +1,62 @@
 import axios from "axios"
 
-export const API_URL = "http://127.0.0.1:8000/api"
+// Create axios instance with default config
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-// Request interceptor for JWT token
+// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("access_token")
+    const token = localStorage.getItem("token")
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // Log outgoing requests for debugging
+    //console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, config)
     return config
   },
   (error) => {
+    //console.error("API Request Error:", error)
     return Promise.reject(error)
   },
 )
 
-// Response interceptor for token refresh
+// Add response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log successful responses for debugging
+    //console.log(`API Response: ${response.status} ${response.config.url}`, response.data)
+    return response
+  },
   async (error) => {
-    const originalRequest = error.config
+    //console.error("API Response Error:", error.response?.status, error.response?.data)
 
-    // If 401 error and not a retry attempt
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
+    // Handle token refresh if 401 error
+    if (error.response?.status === 401 && !error.config._retry) {
       try {
-        const refreshToken = localStorage.getItem("refresh_token")
-        if (!refreshToken) throw new Error("No refresh token")
+        error.config._retry = true
+        const refreshToken = localStorage.getItem("refreshToken")
 
-        const response = await axios.post(`${API_URL}/token/refresh/`, {
-          refresh: refreshToken,
-        })
+        if (refreshToken) {
+          const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/token/refresh/`, {
+            refresh: refreshToken,
+          })
 
-        localStorage.setItem("access_token", response.data.access)
-        api.defaults.headers.common["Authorization"] = `Bearer ${response.data.access}`
-
-        // Retry original request with new token
-        return api(originalRequest)
+          if (response.data.access) {
+            localStorage.setItem("token", response.data.access)
+            api.defaults.headers.Authorization = `Bearer ${response.data.access}`
+            return api(error.config)
+          }
+        }
       } catch (refreshError) {
-        // If refresh fails, clear storage and redirect to login
-        localStorage.removeItem("access_token")
-        localStorage.removeItem("refresh_token")
+        // If refresh fails, redirect to login
+        localStorage.removeItem("token")
+        localStorage.removeItem("refreshToken")
         window.location.href = "/"
         return Promise.reject(refreshError)
       }

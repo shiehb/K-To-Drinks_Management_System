@@ -1,152 +1,187 @@
-import { useState, createContext, useContext, useEffect, useCallback } from "react";
-import api from "../api/api_url";
-import { toast } from "react-toastify";
+"use client"
 
-export const AuthContext = createContext();
+import { createContext, useContext, useState, useEffect } from "react"
+import { authService, userService } from "../services/api"
+import { handleApiSuccess } from "../utils/apiErrorHandler"
+import { toast } from "react-toastify"
 
-export function useAuth() {
-  return useContext(AuthContext);
+// Create context
+const AuthContext = createContext()
+
+// Custom hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
 }
 
+// Auth provider component
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("darkMode") === "true";
-  });
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Apply dark mode
+  // Initialize auth state from localStorage on mount
   useEffect(() => {
-    document.body.classList.toggle("dark", darkMode);
-    localStorage.setItem("darkMode", darkMode);
-  }, [darkMode]);
-
-  const toggleDarkMode = () => setDarkMode(prev => !prev);
-
-  // Stable JWT parser
-  const parseJwt = useCallback((token) => {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      console.error('JWT parsing error:', e);
-      return null;
-    }
-  }, []);
-
-  // Stable auth check with dependency optimization
-  const checkAuth = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return false;
-
-      const userData = parseJwt(token);
-      if (!userData) return false;
-
-      const newUser = {
-        username: userData.username || `user_${userData.user_id}`,
-        firstName: userData.first_name || "",
-        lastName: userData.last_name || "",
-      };
-
-      // Only update if user data has changed
-      if (JSON.stringify(newUser) !== JSON.stringify(user)) {
-        setUser(newUser);
-        localStorage.setItem("user", JSON.stringify(newUser));
+    const initAuth = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        if (token) {
+          const result = await checkAuth()
+          if (!result) {
+            // If token verification fails, clear localStorage
+            localStorage.removeItem("token")
+            localStorage.removeItem("refreshToken")
+            setUser(null)
+          }
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error)
+        setUser(null)
+      } finally {
+        setLoading(false)
       }
-
-      return true;
-    } catch (error) {
-      console.error("Auth check error:", error);
-      return false;
     }
-  }, [user, parseJwt]);
 
-  // Initialize auth state once on mount
-  useEffect(() => {
-    const initializeAuth = async () => {
-      await checkAuth();
-    };
-    initializeAuth();
-  }, [checkAuth]);
+    initAuth()
+  }, [])
 
-  const clearAuthData = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
-  };
-
+  // Login function
   const login = async (credentials) => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const response = await api.post("/token/", {
-        username: credentials.username.trim(),
-        password: credentials.password.trim()
-      });
+      setLoading(true)
+      setError(null)
 
-      if (response.data?.access) {
-        localStorage.setItem("access_token", response.data.access);
-        localStorage.setItem("refresh_token", response.data.refresh);
+      const result = await authService.login(credentials)
 
-        const userData = parseJwt(response.data.access);
-        const newUser = {
-          username: userData.username || credentials.username,
-          firstName: userData.first_name || "",
-          lastName: userData.last_name || "",
-        };
+      if (result.success) {
+        const { access, refresh, user: userData } = result.data
 
-        setUser(newUser);
-        localStorage.setItem("user", JSON.stringify(newUser));
-        toast.success("Login successful");
-        return true;
+        // Store tokens in localStorage
+        localStorage.setItem("token", access)
+        localStorage.setItem("refreshToken", refresh)
+
+        // Set user state
+        setUser(userData)
+
+        handleApiSuccess("Login successful")
+        return true
+      } else {
+        setError(result.error.message)
+        return false
       }
-      throw new Error("No access token in response");
     } catch (error) {
-      console.error("Login error:", error.response?.data || error);
-      const errorMsg = error.response?.data?.detail || 
-                     error.message || 
-                     "Login failed";
-      setError(errorMsg);
-      toast.error(errorMsg);
-      return false;
+      console.error("Login error:", error)
+      setError("An unexpected error occurred during login")
+      return false
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
+  // Logout function
   const logout = () => {
-    setUser(null);
-    clearAuthData();
-    toast.info("Logged out successfully");
-  };
+    // Clear localStorage
+    localStorage.removeItem("token")
+    localStorage.removeItem("refreshToken")
 
-  return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      error,
-      login,
-      logout,
-      checkAuth,
-      darkMode,
-      toggleDarkMode,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+    // Clear user state
+    setUser(null)
 
-export default AuthProvider;
+    // Show success message
+    toast.info("You have been logged out", {
+      position: "top-right",
+      autoClose: 3000,
+    })
+  }
+
+  // Check if user is authenticated
+  const checkAuth = async () => {
+    try {
+      setLoading(true)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        return false
+      }
+
+      // Verify token
+      const verifyResult = await authService.verifyToken(token)
+
+      if (!verifyResult.success) {
+        // Try to refresh the token
+        const refreshToken = localStorage.getItem("refreshToken")
+        if (!refreshToken) {
+          return false
+        }
+
+        const refreshResult = await authService.refreshToken(refreshToken)
+
+        if (!refreshResult.success) {
+          return false
+        }
+
+        // Update token in localStorage
+        localStorage.setItem("token", refreshResult.data.access)
+      }
+
+      // Fetch user profile
+      const profileResult = await userService.getProfile()
+
+      if (profileResult.success) {
+        setUser(profileResult.data)
+        return true
+      }
+
+      return false
+    } catch (error) {
+      console.error("Auth check error:", error)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Change password
+  const changePassword = async (data) => {
+    try {
+      setLoading(true)
+
+      const result = await authService.changePassword(data)
+
+      if (result.success) {
+        handleApiSuccess("Password changed successfully")
+        return true
+      } else {
+        setError(result.error.message)
+        return false
+      }
+    } catch (error) {
+      console.error("Change password error:", error)
+      setError("An unexpected error occurred")
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Context value
+  const value = {
+    user,
+    loading,
+    error,
+    login,
+    logout,
+    checkAuth,
+    changePassword,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export default AuthContext
+

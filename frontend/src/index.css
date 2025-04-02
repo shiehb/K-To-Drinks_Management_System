@@ -1,44 +1,55 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font Awesome */
 @import "@fortawesome/fontawesome-free/css/all.css";
+
+/* Google Fonts with fallback */
 @import url("https://fonts.cdnfonts.com/css/product-sans");
-@import "tw-animate-css";
+@font-face {
+  font-family: 'Product Sans';
+  src: local('Arial');
+  font-display: swap;
+}
+
 
 /* Root Variables - Light Mode (Default) */
 :root {
   /* Brand Colors */
   --primary-color: #c23a22;
   --primary-hover: rgba(194, 58, 34, 0.8);
-  
+
   /* Text Colors */
   --text-color: #0c1d32;
   --text-primary: #0c1d32;
   --text-secondary: #2d3748;
   --text-tertiary: #4a5568;
   --stext-color: #e8e8e8;
-  
+
   /* UI Colors */
   --border-color: #d1d5db;
   --sborder-color: #e8e8e8;
   --shadow-color: rgba(87, 87, 87, 0.2);
   --background-color: #ffffff;
   --sbackground-color: #f9fafb;
-  
+
   /* Status Colors */
   --error-color: #c23a22;
   --success-color: #4caf50;
   --warning-color: #ff9800;
-  
+
   /* Muted Colors */
   --muted-text: #6c757d;
   --muted-foreground: #6c757d;
-  
+
   /* Component Colors */
   --card-background: #ffffff;
-  
+
   /* Design Tokens */
   --radius: 0.625rem;
   --transition-speed: 0.3s;
-  
+
   /* ShadCN Compatible */
   --background: #ffffff;
   --foreground: #0c1d32;
@@ -55,14 +66,14 @@
   --destructive: #ef4444;
   --input: #d1d5db;
   --ring: #c23a22;
-  
+
   /* Chart Colors */
   --chart-1: #c23a22;
   --chart-2: #3b82f6;
   --chart-3: #10b981;
   --chart-4: #f59e0b;
   --chart-5: #8b5cf6;
-  
+
   /* Sidebar Colors */
   --sidebar: #ffffff;
   --sidebar-foreground: #0c1d32;
@@ -78,33 +89,33 @@
   /* Brand Colors */
   --primary-color: #e74c3c;
   --primary-hover: rgba(231, 76, 60, 0.8);
-  
+
   /* Text Colors */
   --text-color: #f8f9fa;
   --text-primary: #f8f9fa;
   --text-secondary: #e9ecef;
   --text-tertiary: #dee2e6;
   --stext-color: #0c1d32;
-  
+
   /* UI Colors */
   --border-color: #555555;
   --sborder-color: #444444;
   --shadow-color: rgba(0, 0, 0, 0.5);
   --background-color: #121212;
   --sbackground-color: #1e1e1e;
-  
+
   /* Status Colors */
   --error-color: #ff5252;
   --success-color: #66bb6a;
   --warning-color: #ffb74d;
-  
+
   /* Muted Colors */
   --muted-text: #b0b0b0;
   --muted-foreground: #a0a0a0;
-  
+
   /* Component Colors */
   --card-background: #1e1e1e;
-  
+
   /* ShadCN Compatible */
   --background: #121212;
   --foreground: #f8f9fa;
@@ -121,14 +132,14 @@
   --destructive: #ef4444;
   --input: #555555;
   --ring: #e74c3c;
-  
+
   /* Chart Colors */
   --chart-1: #e74c3c;
   --chart-2: #60a5fa;
   --chart-3: #34d399;
   --chart-4: #fbbf24;
   --chart-5: #a78bfa;
-  
+
   /* Sidebar Colors */
   --sidebar: #1e1e1e;
   --sidebar-foreground: #f8f9fa;
@@ -145,19 +156,24 @@
   padding: 0;
   box-sizing: border-box;
   font-family: "Product Sans", Arial, sans-serif;
-  transition: 
-    background-color var(--transition-speed) ease, 
-    color var(--transition-speed) ease, 
-    border-color var(--transition-speed) ease;
+  transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease, border-color
+    var(--transition-speed) ease;
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text-primary);
   font-weight: 600;
 }
 
-p, span, li {
+p,
+span,
+li {
   color: var(--text-secondary);
 }
 
@@ -316,8 +332,12 @@ p, span, li {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Utility Classes */
@@ -344,3 +364,4 @@ p, span, li {
 .bg-card {
   background-color: var(--card-background);
 }
+

@@ -5,6 +5,7 @@ import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useState, useEffect } from "react"
 import { useAuth } from "./context/AuthContext"
+import { AppProvider } from "./context/AppContext"
 import Layout from "./components/Layout"
 import LoginPage from "./pages/LoginPage"
 import LocalStorePage from "./pages/LocalStorePage"
@@ -121,31 +122,33 @@ function App() {
   }, [user])
 
   return (
-    <Router>
-      <ToastContainer {...toastConfig} />
+    <AppProvider>
+      <Router>
+        <ToastContainer {...toastConfig} />
 
-      <Routes>
-        {/* Public Route */}
-        <Route path="/" element={<LoginPage />} />
+        <Routes>
+          {/* Public Route */}
+          <Route path="/" element={<LoginPage />} />
 
-        {/* Protected Routes */}
-        <Route element={<Layout />}>
-          <Route path="/dashboard" element={<PrivateRoute element={<DashboardPage />} />} />
-          <Route path="/localstore" element={<PrivateRoute element={<LocalStorePage />} />} />
-          <Route path="/inventory" element={<PrivateRoute element={<InventoryPage />} />} />
-          <Route path="/products" element={<PrivateRoute element={<ProductPage />} />} />
-          <Route path="/order" element={<PrivateRoute element={<OrderPage />} />} />
-          <Route path="/delivery" element={<PrivateRoute element={<DeliveryPage />} />} />
-          <Route
-            path="/user"
-            element={<PrivateRoute element={<UserPage users={users} loading={loading} setUsers={setUsers} />} />}
-          />
-        </Route>
+          {/* Protected Routes */}
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<PrivateRoute element={<DashboardPage />} />} />
+            <Route path="/localstore" element={<PrivateRoute element={<LocalStorePage />} />} />
+            <Route path="/inventory" element={<PrivateRoute element={<InventoryPage />} />} />
+            <Route path="/products" element={<PrivateRoute element={<ProductPage />} />} />
+            <Route path="/order" element={<PrivateRoute element={<OrderPage />} />} />
+            <Route path="/delivery" element={<PrivateRoute element={<DeliveryPage />} />} />
+            <Route
+              path="/user"
+              element={<PrivateRoute element={<UserPage users={users} loading={loading} setUsers={setUsers} />} />}
+            />
+          </Route>
 
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </AppProvider>
   )
 }
 
