@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
-import { Search, Truck, Calendar, Package, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Search, Truck, Calendar, Package, CheckCircle, XCircle, Clock, Map } from "lucide-react"
 import "../css/delivery.css"
+import api from "../api/api_url"
+import LeafletMapPopup from "../components/LeafletMapPopup"
 
 export default function DeliveryPage() {
   // State for deliveries
@@ -13,6 +15,16 @@ export default function DeliveryPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("all")
+
+  // State for route planning
+  const [showRouteMap, setShowRouteMap] = useState(false)
+  const [routeDay, setRouteDay] = useState("Monday")
+  const [storeLocations, setStoreLocations] = useState([])
+  const [loadingStores, setLoadingStores] = useState(false)
+  const [centerLocation, setCenterLocation] = useState({
+    lat: 16.63614047965268,
+    lng: 120.31339285476308,
+  })
 
   // Fetch deliveries on component mount
   useEffect(() => {
@@ -197,20 +209,79 @@ export default function DeliveryPage() {
     toast.success(`Delivery ${id} status updated to ${newStatus}`)
   }
 
-  const handleAssignDriver = (id, driver) => {
-    const updatedDeliveries = deliveries.map((delivery) => (delivery.id === id ? { ...delivery, driver } : delivery))
-
-    setDeliveries(updatedDeliveries)
-    toast.success(`Driver ${driver} assigned to delivery ${id}`)
-  }
-
   const handleViewDetails = (id) => {
     // In a real app, this would navigate to a details page or open a modal
     toast.info(`Viewing details for delivery ${id}`)
   }
 
+  // Fetch store locations for route planning
+  const fetchStoreLocations = async (day) => {
+    setLoadingStores(true)
+    try {
+      // Get store locations from the API
+      const response = await api.get(`/stores/?archived=false`)
+
+      // Filter stores by the selected day
+      const filteredStores = response.data.filter((store) => store.day === day)
+
+      setStoreLocations(
+        filteredStores.map((store) => ({
+          lat: store.lat,
+          lng: store.lng,
+          name: store.name,
+          address: store.location,
+        })),
+      )
+
+      // Set center location to the first store or default
+      if (filteredStores.length > 0) {
+        setCenterLocation({
+          lat: filteredStores[0].lat,
+          lng: filteredStores[0].lng,
+        })
+      }
+
+      toast.success(`Loaded ${filteredStores.length} stores for ${day}`)
+    } catch (error) {
+      console.error("Error fetching store locations:", error)
+      toast.error("Failed to load store locations")
+
+      // Fallback to mock data if API fails
+      const mockStores = [
+        { lat: 16.636, lng: 120.313, name: "Downtown Store", address: "123 Main St" },
+        { lat: 16.64, lng: 120.32, name: "Uptown Store", address: "456 High St" },
+        { lat: 16.632, lng: 120.305, name: "Westside Store", address: "789 West Ave" },
+      ]
+      setStoreLocations(mockStores)
+    } finally {
+      setLoadingStores(false)
+    }
+  }
+
+  // Open route planning map
+  const openRouteMap = () => {
+    setShowRouteMap(true)
+    fetchStoreLocations(routeDay)
+  }
+
+  // Handle day change in route planning
+  const handleRouteDayChange = (e) => {
+    const newDay = e.target.value
+    setRouteDay(newDay)
+    fetchStoreLocations(newDay)
+  }
+
+  // Close route planning map
+  const closeRouteMap = () => {
+    setShowRouteMap(false)
+  }
+
   return (
     <div className="delivery-page">
+      <div className="delivery-header">
+        <h1>Delivery Management</h1>
+        <p>Track and manage all deliveries</p>
+      </div>
 
       <div className="delivery-filters">
         <div className="search-bar">
@@ -244,6 +315,11 @@ export default function DeliveryPage() {
               <option value="past">Past</option>
             </select>
           </div>
+
+          <button className="route-planning-btn" onClick={openRouteMap}>
+            <Map size={16} />
+            Route Planning
+          </button>
         </div>
       </div>
 
@@ -357,6 +433,50 @@ export default function DeliveryPage() {
           </table>
         )}
       </div>
+
+      {/* Route Planning Map Modal */}
+      {showRouteMap && (
+        <div className="route-map-modal">
+          <div className="route-map-content">
+            <div className="route-map-header">
+              <h2>Route Planning</h2>
+              <button className="close-btn" onClick={closeRouteMap}>
+                ×
+              </button>
+            </div>
+            <div className="route-planning-controls">
+              <div className="day-selector">
+                <label>Select Day:</label>
+                <select value={routeDay} onChange={handleRouteDayChange}>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+              </div>
+              <div className="store-count">
+                {loadingStores ? "Loading stores..." : `${storeLocations.length} stores found`}
+              </div>
+            </div>
+
+            <div className="route-map-container">
+              {loadingStores ? (
+                <div className="loading-map">Loading store locations...</div>
+              ) : (
+                <LeafletMapPopup
+                  lat={centerLocation.lat}
+                  lng={centerLocation.lng}
+                  markerLabel="Distribution Center"
+                  additionalMarkers={storeLocations}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
