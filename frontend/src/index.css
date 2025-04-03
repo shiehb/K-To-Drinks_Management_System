@@ -8,11 +8,10 @@
 /* Google Fonts with fallback */
 @import url("https://fonts.cdnfonts.com/css/product-sans");
 @font-face {
-  font-family: 'Product Sans';
-  src: local('Arial');
+  font-family: "Product Sans";
+  src: local("Arial");
   font-display: swap;
 }
-
 
 /* Root Variables - Light Mode (Default) */
 :root {

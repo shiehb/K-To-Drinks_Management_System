@@ -1,25 +1,25 @@
-import React from 'react';
-import styled from 'styled-components';
+"use client"
+import styled from "styled-components"
 
 const Card = ({ title, value, description, onViewDetails, icon, currentSales, previousSales, text }) => {
   // Calculate the percentage change in sales
   const calculatePercentageChange = (current, previous) => {
-    if (previous === 0) return 0; // Avoid division by zero
-    return ((current - previous) / previous) * 100;
-  };
+    if (previous === 0) return 0 // Avoid division by zero
+    return ((current - previous) / previous) * 100
+  }
 
   // Ensure currentSales and previousSales are numbers
-  const current = parseFloat(currentSales);
-  const previous = parseFloat(previousSales);
+  const current = Number.parseFloat(currentSales)
+  const previous = Number.parseFloat(previousSales)
 
   // Calculate the percentage change
-  const percentageChange = calculatePercentageChange(current, previous);
+  const percentageChange = calculatePercentageChange(current, previous)
 
   // Cap the width at 100% to avoid exceeding the container
-  const fillWidth = Math.min(Math.abs(percentageChange), 100);
+  const fillWidth = Math.min(Math.abs(percentageChange), 100)
 
   // Determine fill color
-  const fillColor = percentageChange <= -1 ? '#ff4d4d' : percentageChange >= 0 ? '#02972f' : '#E5E7EB';
+  const fillColor = percentageChange <= -1 ? "#ff4d4d" : percentageChange >= 0 ? "#02972f" : "#E5E7EB"
 
   return (
     <StyledCard onClick={onViewDetails}>
@@ -37,16 +37,17 @@ const Card = ({ title, value, description, onViewDetails, icon, currentSales, pr
           <div className="fill" style={{ width: `${fillWidth}%`, backgroundColor: fillColor }}></div>
         </div>
       </div>
-      <p className="percent" style={{ color: percentageChange < 0 ? '#ff4d4d' : '#02972f' }}>
+      <p className="percent" style={{ color: percentageChange < 0 ? "#ff4d4d" : "#02972f" }}>
         <svg viewBox="0 0 1792 1792" fill="currentColor" height={20} width={20}>
           <path d="M1408 1216q0 26-19 45t-45 19h-896q-26 0-45-19t-19-45 19-45l448-448q19-19 45-19t45 19l448 448q19 19 19 45z" />
         </svg>
-        {!isNaN(percentageChange) ? `${percentageChange.toFixed(1)}%  ` : '0 '}{}
-        <span style={{ color: 'black' }}>vs past month</span>
+        {!isNaN(percentageChange) ? `${percentageChange.toFixed(1)}%  ` : "0 "}
+        {}
+        <span style={{ color: "black" }}>vs past month</span>
       </p>
     </StyledCard>
-  );
-};
+  )
+}
 
 const StyledCard = styled.div`
   padding: 1rem;
@@ -133,6 +134,7 @@ const StyledCard = styled.div`
     border-radius: 0.25rem;
     transition: width 0.3s ease;
   }
-`;
+`
 
-export default Card;
+export default Card
+

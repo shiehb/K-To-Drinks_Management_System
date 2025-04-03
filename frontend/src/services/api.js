@@ -1,570 +1,621 @@
-import axios from "axios"
-import { handleApiError } from "../utils/apiErrorHandler"
-import endpoints from "../config/apiEndpoints"
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
-
-// Add request interceptor to include auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token")
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error),
-)
-
-// Add response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    // Handle token refresh if 401 error
-    if (error.response?.status === 401 && !error.config._retry) {
-      try {
-        error.config._retry = true
-        const refreshToken = localStorage.getItem("refreshToken")
-
-        if (refreshToken) {
-          const response = await axios.post(endpoints.AUTH.REFRESH, {
-            refresh: refreshToken,
-          })
-
-          if (response.data.access) {
-            localStorage.setItem("token", response.data.access)
-            api.defaults.headers.Authorization = `Bearer ${response.data.access}`
-            return api(error.config)
-          }
-        }
-      } catch (refreshError) {
-        // If refresh fails, redirect to login
-        localStorage.removeItem("token")
-        localStorage.removeItem("refreshToken")
-        window.location.href = "/"
-        return Promise.reject(refreshError)
-      }
-    }
-
-    return Promise.reject(error)
-  },
-)
-
-// Auth service
-export const authService = {
-  login: async (credentials) => {
-    try {
-      const response = await api.post(endpoints.AUTH.LOGIN, credentials)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Login failed") }
-    }
-  },
-
-  refreshToken: async (refreshToken) => {
-    try {
-      const response = await api.post(endpoints.AUTH.REFRESH, { refresh: refreshToken })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Token refresh failed", false) }
-    }
-  },
-
-  verifyToken: async (token) => {
-    try {
-      const response = await api.post(endpoints.AUTH.VERIFY, { token })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Token verification failed", false) }
-    }
-  },
-
-  changePassword: async (data) => {
-    try {
-      const response = await api.post(endpoints.AUTH.CHANGE_PASSWORD, data)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Password change failed") }
-    }
-  },
-}
+// services/api.js
+import api from "../api/api_url";
 
 // User service
 export const userService = {
   getAll: async () => {
     try {
-      const response = await api.get(endpoints.USER.LIST)
-      return { success: true, data: response.data }
+      const response = await api.get("/users/");
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch users") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch users",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getById: async (id) => {
     try {
-      const response = await api.get(endpoints.USER.DETAIL(id))
-      return { success: true, data: response.data }
+      const response = await api.get(`/users/${id}/`);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch user") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch user",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   create: async (userData) => {
     try {
-      const response = await api.post(endpoints.USER.CREATE, userData)
-      return { success: true, data: response.data }
+      const response = await api.post("/users/", userData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to create user") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to create user",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   update: async (id, userData) => {
     try {
-      const response = await api.put(endpoints.USER.UPDATE(id), userData)
-      return { success: true, data: response.data }
+      const response = await api.put(`/users/${id}/`, userData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to update user") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to update user",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
-  delete: async (id) => {
+  
+  archive: async (id) => {
     try {
-      const response = await api.delete(endpoints.USER.DELETE(id))
-      return { success: true, data: response.data }
+      const response = await api.post(`/users/${id}/archive/`, { archive: true });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to delete user") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to archive user",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getProfile: async () => {
     try {
-      const response = await api.get(endpoints.USER.PROFILE)
-      return { success: true, data: response.data }
+      const response = await api.get("/users/profile/");
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch profile") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch profile",
+          status: error.response?.status
+        }
+      };
     }
   },
-}
+  
+  changePassword: async (passwordData) => {
+    try {
+      const response = await api.put("/users/change-password/", passwordData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to change password",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
+    }
+  }
+};
 
 // Store service
 export const storeService = {
   getAll: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.STORE.LIST, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/stores/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch stores") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch stores",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getById: async (id) => {
     try {
-      const response = await api.get(endpoints.STORE.DETAIL(id))
-      return { success: true, data: response.data }
+      const response = await api.get(`/stores/${id}/`);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch store") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch store",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   create: async (storeData) => {
     try {
-      const response = await api.post(endpoints.STORE.CREATE, storeData)
-      return { success: true, data: response.data }
+      const response = await api.post("/stores/", storeData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to create store") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to create store",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   update: async (id, storeData) => {
     try {
-      const response = await api.put(endpoints.STORE.UPDATE(id), storeData)
-      return { success: true, data: response.data }
+      const response = await api.put(`/stores/${id}/`, storeData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to update store") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to update store",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   archive: async (id) => {
     try {
-      const response = await api.post(endpoints.STORE.ARCHIVE(id))
-      return { success: true, data: response.data }
+      const response = await api.post(`/stores/${id}/archive/`, { archive: true });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to archive store") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to archive store",
+          status: error.response?.status
+        }
+      };
     }
-  },
-
-  getByDay: async (day) => {
-    try {
-      const response = await api.get(endpoints.STORE.BY_DAY(day))
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch stores by day") }
-    }
-  },
-}
+  }
+};
 
 // Product service
 export const productService = {
   getAll: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.PRODUCT.LIST, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/products/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch products") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch products",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getById: async (id) => {
     try {
-      const response = await api.get(endpoints.PRODUCT.DETAIL(id))
-      return { success: true, data: response.data }
+      const response = await api.get(`/products/${id}/`);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch product") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch product",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   create: async (productData) => {
     try {
-      const response = await api.post(endpoints.PRODUCT.CREATE, productData)
-      return { success: true, data: response.data }
+      const response = await api.post("/products/", productData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to create product") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to create product",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   update: async (id, productData) => {
     try {
-      const response = await api.put(endpoints.PRODUCT.UPDATE(id), productData)
-      return { success: true, data: response.data }
+      const response = await api.put(`/products/${id}/`, productData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to update product") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to update product",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   getCategories: async () => {
     try {
-      const response = await api.get(endpoints.PRODUCT.CATEGORIES)
-      return { success: true, data: response.data }
+      const response = await api.get("/product-categories/");
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch product categories") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch product categories",
+          status: error.response?.status
+        }
+      };
     }
-  },
-
-  getSuppliers: async () => {
-    try {
-      const response = await api.get(endpoints.PRODUCT.SUPPLIERS)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch suppliers") }
-    }
-  },
-}
+  }
+};
 
 // Inventory service
 export const inventoryService = {
   getAll: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.INVENTORY.LIST, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/inventory/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch inventory") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch inventory",
+          status: error.response?.status
+        }
+      };
     }
   },
-
-  getById: async (id) => {
+  
+  adjust: async (adjustmentData) => {
     try {
-      const response = await api.get(endpoints.INVENTORY.DETAIL(id))
-      return { success: true, data: response.data }
+      const response = await api.post("/inventory/adjust/", adjustmentData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch inventory item") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to adjust inventory",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
-  adjustStock: async (adjustmentData) => {
-    try {
-      const response = await api.post(endpoints.INVENTORY.ADJUST, adjustmentData)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to adjust inventory") }
-    }
-  },
-
+  
   getTransactions: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.INVENTORY.TRANSACTIONS, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/inventory-transactions/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch inventory transactions") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch inventory transactions",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getLowStock: async () => {
     try {
-      const response = await api.get(endpoints.INVENTORY.LOW_STOCK)
-      return { success: true, data: response.data }
+      const response = await api.get("/inventory/low-stock/");
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch low stock items") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch low stock items",
+          status: error.response?.status
+        }
+      };
     }
-  },
-
-  getExpiringProducts: async () => {
-    try {
-      const response = await api.get(endpoints.INVENTORY.EXPIRING)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch expiring products") }
-    }
-  },
-}
+  }
+};
 
 // Order service
 export const orderService = {
   getAll: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.ORDER.LIST, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/orders/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch orders") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch orders",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getById: async (id) => {
     try {
-      const response = await api.get(endpoints.ORDER.DETAIL(id))
-      return { success: true, data: response.data }
+      const response = await api.get(`/orders/${id}/`);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch order") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch order",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   create: async (orderData) => {
     try {
-      const response = await api.post(endpoints.ORDER.CREATE, orderData)
-      return { success: true, data: response.data }
+      const response = await api.post("/orders/", orderData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to create order") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to create order",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   update: async (id, orderData) => {
     try {
-      const response = await api.put(endpoints.ORDER.UPDATE(id), orderData)
-      return { success: true, data: response.data }
+      const response = await api.put(`/orders/${id}/`, orderData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to update order") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to update order",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   getReceipt: async (id) => {
     try {
-      const response = await api.get(endpoints.ORDER.RECEIPT(id))
-      return { success: true, data: response.data }
+      const response = await api.get(`/orders/${id}/receipt/`);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch receipt") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch receipt",
+          status: error.response?.status
+        }
+      };
     }
   },
-
-  getPdf: async (id) => {
+  
+  generatePdf: async (id) => {
     try {
-      const response = await api.get(endpoints.ORDER.PDF(id), {
-        responseType: "blob",
-      })
-      return { success: true, data: response.data }
+      const response = await api.get(`/orders/${id}/pdf/`, {
+        responseType: 'blob'
+      });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch PDF") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to generate PDF",
+          status: error.response?.status
+        }
+      };
     }
-  },
-}
+  }
+};
 
 // Delivery service
 export const deliveryService = {
   getAll: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.DELIVERY.LIST, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/deliveries/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch deliveries") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch deliveries",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getById: async (id) => {
     try {
-      const response = await api.get(endpoints.DELIVERY.DETAIL(id))
-      return { success: true, data: response.data }
+      const response = await api.get(`/deliveries/${id}/`);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch delivery") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch delivery",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   create: async (deliveryData) => {
     try {
-      const response = await api.post(endpoints.DELIVERY.CREATE, deliveryData)
-      return { success: true, data: response.data }
+      const response = await api.post("/deliveries/", deliveryData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to create delivery") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to create delivery",
+          status: error.response?.status,
+          fields: error.response?.data || {}
+        }
+      };
     }
   },
-
+  
   updateStatus: async (id, statusData) => {
     try {
-      const response = await api.post(endpoints.DELIVERY.UPDATE_STATUS(id), statusData)
-      return { success: true, data: response.data }
+      const response = await api.post(`/deliveries/${id}/update-status/`, statusData);
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to update delivery status") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to update delivery status",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   uploadSignature: async (id, signatureData) => {
     try {
-      const formData = new FormData()
-
-      // If signatureData is a base64 string, convert it to a Blob
-      if (typeof signatureData === "string" && signatureData.startsWith("data:image")) {
-        const byteString = atob(signatureData.split(",")[1])
-        const mimeString = signatureData.split(",")[0].split(":")[1].split(";")[0]
-        const ab = new ArrayBuffer(byteString.length)
-        const ia = new Uint8Array(ab)
-
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i)
-        }
-
-        const blob = new Blob([ab], { type: mimeString })
-        formData.append("signature", blob, "signature.png")
-      } else if (signatureData instanceof Blob) {
-        formData.append("signature", signatureData, "signature.png")
+      let formData;
+      
+      if (typeof signatureData === 'string' && signatureData.startsWith('data:image')) {
+        // Handle base64 image
+        formData = new FormData();
+        formData.append('signature_data', signatureData);
+      } else if (signatureData instanceof File) {
+        // Handle file upload
+        formData = new FormData();
+        formData.append('signature', signatureData);
       } else {
-        formData.append("signature_data", JSON.stringify(signatureData))
+        throw new Error('Invalid signature data');
       }
-
-      const response = await api.post(endpoints.DELIVERY.SIGNATURE(id), formData, {
+      
+      const response = await api.post(`/deliveries/${id}/signature/`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
-
-      return { success: true, data: response.data }
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to upload signature") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to upload signature",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getRoutes: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.DELIVERY.ROUTES, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/delivery-routes/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch delivery routes") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch delivery routes",
+          status: error.response?.status
+        }
+      };
     }
-  },
-}
-
-// Employee service
-export const employeeService = {
-  getAll: async (params = {}) => {
-    try {
-      const response = await api.get(endpoints.EMPLOYEE.LIST, { params })
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch employees") }
-    }
-  },
-
-  getById: async (id) => {
-    try {
-      const response = await api.get(endpoints.EMPLOYEE.DETAIL(id))
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch employee") }
-    }
-  },
-
-  create: async (employeeData) => {
-    try {
-      const response = await api.post(endpoints.EMPLOYEE.CREATE, employeeData)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to create employee") }
-    }
-  },
-
-  update: async (id, employeeData) => {
-    try {
-      const response = await api.put(endpoints.EMPLOYEE.UPDATE(id), employeeData)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to update employee") }
-    }
-  },
-
-  getDeliveryEmployees: async () => {
-    try {
-      const response = await api.get(endpoints.EMPLOYEE.DELIVERY_STAFF)
-      return { success: true, data: response.data }
-    } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch delivery staff") }
-    }
-  },
-}
+  }
+};
 
 // Dashboard service
 export const dashboardService = {
   getSummary: async () => {
     try {
-      const response = await api.get(endpoints.DASHBOARD.SUMMARY)
-      return { success: true, data: response.data }
+      const response = await api.get("/dashboard/summary/");
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch dashboard summary") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch dashboard summary",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getSales: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.DASHBOARD.SALES, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/dashboard/sales/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch sales data") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch sales data",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getInventory: async () => {
     try {
-      const response = await api.get(endpoints.DASHBOARD.INVENTORY)
-      return { success: true, data: response.data }
+      const response = await api.get("/dashboard/inventory/");
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch inventory dashboard data") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch inventory dashboard data",
+          status: error.response?.status
+        }
+      };
     }
   },
-
+  
   getDeliveries: async (params = {}) => {
     try {
-      const response = await api.get(endpoints.DASHBOARD.DELIVERIES, { params })
-      return { success: true, data: response.data }
+      const response = await api.get("/dashboard/deliveries/", { params });
+      return { success: true, data: response.data };
     } catch (error) {
-      return { success: false, error: handleApiError(error, "Failed to fetch delivery dashboard data") }
+      return { 
+        success: false, 
+        error: {
+          message: error.response?.data?.detail || "Failed to fetch delivery dashboard data",
+          status: error.response?.status
+        }
+      };
     }
-  },
-}
+  }
+};
 
 // Export all services
 export default {
-  auth: authService,
   user: userService,
   store: storeService,
   product: productService,
   inventory: inventoryService,
   order: orderService,
   delivery: deliveryService,
-  employee: employeeService,
-  dashboard: dashboardService,
-}
-
-// Export the axios instance for direct use
-export { api }
-
+  dashboard: dashboardService
+};

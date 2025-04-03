@@ -1,19 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router"
 import { useAuth } from "../context/AuthContext"
 import "../css/login.css"
 import Loader from "./styled-components/Loader"
+import { validateLoginInput } from "../utils/validators" // We'll create this utility
+import { AlertCircle, RefreshCw, WifiOff } from "lucide-react"
 
-export default function Login() {
+export default function Login({ connectionStatus, onRetryConnection, checkingConnection }) {
   const [error, setError] = useState("")
   const [credentials, setCredentials] = useState({ username: "", password: "" })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [validationErrors, setValidationErrors] = useState({})
   const { login, user, darkMode, toggleDarkMode } = useAuth()
   const navigate = useNavigate()
+  const loginAttemptTimeoutRef = useRef(null)
 
   // Check if user is already logged in
   useEffect(() => {
@@ -27,28 +31,52 @@ export default function Login() {
       setCredentials((prev) => ({ ...prev, username: savedUsername }))
       setRememberMe(true)
     }
+
+    // Clean up timeout on unmount
+    return () => {
+      if (loginAttemptTimeoutRef.current) {
+        clearTimeout(loginAttemptTimeoutRef.current)
+      }
+    }
   }, [user, navigate])
 
   // Handle input changes
   const handleChange = (e) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setCredentials({ ...credentials, [name]: value })
+
+    // Clear validation errors when user types
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }))
+    }
   }
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError("")
-    setLoading(true)
 
-    // Validate inputs
-    if (!credentials.username.trim() || !credentials.password.trim()) {
-      setError("Username and password are required")
-      setLoading(false)
+    // If disconnected, attempt to reconnect first
+    if (connectionStatus === "disconnected") {
+      onRetryConnection()
       return
     }
 
+    setError("")
+
+    // Validate inputs
+    const { isValid, errors } = validateLoginInput(credentials)
+    if (!isValid) {
+      setValidationErrors(errors)
+      return
+    }
+
+    setLoading(true)
+
     // Set a timeout to hide the loader after 15 seconds
-    const loaderTimeout = setTimeout(() => {
+    loginAttemptTimeoutRef.current = setTimeout(() => {
       setLoading(false)
       setError("Login process is taking longer than expected. Please try again.")
     }, 15000)
@@ -61,11 +89,9 @@ export default function Login() {
         localStorage.removeItem("rememberedUsername")
       }
 
-      console.log("Attempting login with:", credentials.username)
       const success = await login(credentials)
 
       if (success) {
-        console.log("Login successful, redirecting to dashboard")
         // Redirect to dashboard on success
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
@@ -77,10 +103,9 @@ export default function Login() {
         setCredentials((prev) => ({ ...prev, password: "" }))
       }
     } catch (err) {
-      console.error("Login error:", err)
       setError("An error occurred during login. Please try again.")
     } finally {
-      clearTimeout(loaderTimeout)
+      clearTimeout(loginAttemptTimeoutRef.current)
       setLoading(false)
     }
   }
@@ -88,6 +113,32 @@ export default function Login() {
   // Toggle password visibility
   const toggleShowPassword = () => {
     setShowPassword(!showPassword)
+  }
+
+  // Render connection status message
+  const renderConnectionStatus = () => {
+    if (connectionStatus === "disconnected") {
+      return (
+        <div className="connection-status-banner disconnected">
+          <WifiOff size={20} />
+          <span>Server connection unavailable</span>
+          <button onClick={onRetryConnection} disabled={checkingConnection} className="retry-connection-btn">
+            {checkingConnection ? (
+              <>
+                <RefreshCw size={16} className="spin-animation" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={16} />
+                Retry Connection
+              </>
+            )}
+          </button>
+        </div>
+      )
+    }
+    return null
   }
 
   return (
@@ -101,6 +152,9 @@ export default function Login() {
 
       {/* Login Container */}
       <div className="login-wrapper">
+        {/* Connection status banner */}
+        {renderConnectionStatus()}
+
         {/* Dark mode toggle */}
         <button
           className="theme-toggle-btn"
@@ -111,7 +165,12 @@ export default function Login() {
         </button>
 
         {/* Error message */}
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message" role="alert">
+            <AlertCircle size={18} />
+            {error}
+          </div>
+        )}
 
         <div className="login-container">
           {/* Left Section */}
@@ -146,12 +205,20 @@ export default function Login() {
                     name="username"
                     value={credentials.username}
                     onChange={handleChange}
-                    className="inputs"
+                    className={`inputs ${validationErrors.username ? "error-input" : ""}`}
                     placeholder="Enter your username"
                     required
                     autoComplete="username"
+                    aria-invalid={!!validationErrors.username}
+                    aria-describedby={validationErrors.username ? "username-error" : undefined}
+                    disabled={connectionStatus === "disconnected"}
                   />
                 </div>
+                {validationErrors.username && (
+                  <p id="username-error" className="error-text">
+                    {validationErrors.username}
+                  </p>
+                )}
               </div>
 
               {/* Password field */}
@@ -167,10 +234,13 @@ export default function Login() {
                     name="password"
                     value={credentials.password}
                     onChange={handleChange}
-                    className="inputs"
+                    className={`inputs ${validationErrors.password ? "error-input" : ""}`}
                     placeholder="Enter your password"
                     required
                     autoComplete="current-password"
+                    aria-invalid={!!validationErrors.password}
+                    aria-describedby={validationErrors.password ? "password-error" : undefined}
+                    disabled={connectionStatus === "disconnected"}
                   />
                   <span
                     className="password-toggle-icon"
@@ -183,20 +253,35 @@ export default function Login() {
                     {showPassword ? <i className="fas fa-eye-slash"></i> : <i className="fas fa-eye"></i>}
                   </span>
                 </div>
+                {validationErrors.password && (
+                  <p id="password-error" className="error-text">
+                    {validationErrors.password}
+                  </p>
+                )}
               </div>
 
               {/* Remember me checkbox */}
               <div className="remember-me">
                 <label className="checkbox-container">
-                  <input type="checkbox" checked={rememberMe} onChange={() => setRememberMe(!rememberMe)} />
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={() => setRememberMe(!rememberMe)}
+                    id="remember-me"
+                    disabled={connectionStatus === "disconnected"}
+                  />
                   <span className="checkmark"></span>
                   Remember me
                 </label>
               </div>
 
               {/* Login button */}
-              <button type="submit" className="button" disabled={loading}>
-                {loading ? "LOGGING IN..." : "LOGIN"}
+              <button
+                type="submit"
+                className={`button ${connectionStatus === "disconnected" ? "reconnect-button" : ""}`}
+                disabled={loading}
+              >
+                {loading ? "LOGGING IN..." : connectionStatus === "disconnected" ? "RECONNECT TO SERVER" : "LOGIN"}
               </button>
             </form>
           </div>

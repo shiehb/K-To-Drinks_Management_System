@@ -1,5 +1,5 @@
 /**
- * Utility functions for handling API errors consistently across the application
+ * Enhanced utility functions for handling API errors consistently across the application
  */
 
 import { toast } from "react-toastify"
@@ -28,7 +28,10 @@ const toastConfig = {
  * @returns {Object} Formatted error object with message and field errors
  */
 export const handleApiError = (error, fallbackMessage = "An error occurred", showToast = true) => {
-  console.error("API Error:", error)
+  // Log error to console in development only
+  if (process.env.NODE_ENV !== "production") {
+    console.error("API Error:", error)
+  }
 
   // Extract error details
   const statusCode = error.response?.status
@@ -46,11 +49,17 @@ export const handleApiError = (error, fallbackMessage = "An error occurred", sho
       errorMessage = responseData.detail
     } else if (responseData.error) {
       errorMessage = typeof responseData.error === "string" ? responseData.error : "An error occurred"
+    } else if (typeof responseData === "string") {
+      errorMessage = responseData
     }
 
     // Extract field-specific errors
     if (responseData.errors) {
       fieldErrors = responseData.errors
+    } else if (responseData.fields) {
+      fieldErrors = responseData.fields
+    } else if (responseData.fieldErrors) {
+      fieldErrors = responseData.fieldErrors
     }
   }
 
@@ -69,6 +78,10 @@ export const handleApiError = (error, fallbackMessage = "An error occurred", sho
     errorMessage = "Please check your input and try again."
   } else if (statusCode >= 500) {
     errorMessage = "Server error. Please try again later."
+  } else if (error.code === "ECONNABORTED") {
+    errorMessage = "Request timed out. Please check your connection and try again."
+  } else if (error.message && error.message.includes("Network Error")) {
+    errorMessage = "Network error. Please check your internet connection."
   }
 
   // Show toast notification if requested
@@ -81,6 +94,7 @@ export const handleApiError = (error, fallbackMessage = "An error occurred", sho
     message: errorMessage,
     fieldErrors,
     statusCode,
+    originalError: process.env.NODE_ENV !== "production" ? error : undefined,
   }
 }
 
@@ -104,7 +118,7 @@ export const formatValidationErrors = (errors) => {
       formattedErrors[camelField] = messages[0]
     }
     // Handle nested error objects
-    else if (typeof messages === "object") {
+    else if (typeof messages === "object" && messages !== null) {
       Object.entries(messages).forEach(([nestedField, nestedMessages]) => {
         const fullField = `${camelField}.${nestedField}`
         formattedErrors[fullField] = Array.isArray(nestedMessages) ? nestedMessages[0] : nestedMessages
@@ -128,5 +142,54 @@ export const handleApiSuccess = (message, showToast = true) => {
   if (showToast) {
     toast.success(message, toastConfig)
   }
+}
+
+/**
+ * Create a global error boundary for handling unexpected errors
+ * @param {Error} error - The error that was caught
+ * @param {string} componentStack - The component stack trace
+ */
+export const logErrorToService = (error, componentStack) => {
+  // In a real app, you would send this to an error tracking service like Sentry
+  if (process.env.NODE_ENV !== "production") {
+    console.error("Application Error:", error)
+    console.error("Component Stack:", componentStack)
+  }
+
+  // You could implement actual error logging service here
+  // Example: Sentry.captureException(error, { extra: { componentStack } })
+}
+
+/**
+ * Retry a failed API call with exponential backoff
+ * @param {Function} apiCall - The API call function to retry
+ * @param {number} maxRetries - Maximum number of retries
+ * @param {number} baseDelay - Base delay in milliseconds
+ * @returns {Promise} - The result of the API call
+ */
+export const retryApiCall = async (apiCall, maxRetries = 3, baseDelay = 1000) => {
+  let lastError
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await apiCall()
+    } catch (error) {
+      lastError = error
+
+      // Don't retry for certain status codes
+      if (error.response?.status === 401 || error.response?.status === 403 || error.response?.status === 422) {
+        throw error
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt)
+
+      // Wait before next retry
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+
+  // If we've exhausted all retries, throw the last error
+  throw lastError
 }
 

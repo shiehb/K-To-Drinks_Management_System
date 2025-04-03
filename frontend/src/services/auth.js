@@ -1,59 +1,70 @@
-import axios from 'axios';
+// services/auth.js
+import api from "../api/api_url";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-export const login = async (username, password) => {
+export const login = async (credentials) => {
   try {
-    const response = await axios.post(`${API_URL}/api/token/`, {
-      username,
-      password
-    });
+    const response = await api.post("/token/", credentials);
     
     if (response.data.access) {
-      localStorage.setItem('access_token', response.data.access);
-      localStorage.setItem('refresh_token', response.data.refresh);
+      localStorage.setItem("token", response.data.access);
+      localStorage.setItem("refreshToken", response.data.refresh);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
     }
     
-    return response.data;
+    return { success: true, data: response.data };
   } catch (error) {
-    throw error.response.data;
+    return { 
+      success: false, 
+      error: {
+        message: error.response?.data?.detail || "Login failed",
+        status: error.response?.status
+      }
+    };
   }
 };
 
 export const refreshToken = async () => {
   try {
-    const refresh = localStorage.getItem('refresh_token');
-    const response = await axios.post(`${API_URL}/api/token/refresh/`, {
-      refresh
+    const refreshToken = localStorage.getItem("refreshToken");
+    
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+    
+    const response = await api.post("/token/refresh/", {
+      refresh: refreshToken
     });
     
-    localStorage.setItem('access_token', response.data.access);
-    return response.data.access;
+    if (response.data.access) {
+      localStorage.setItem("token", response.data.access);
+      return { success: true, data: response.data };
+    }
+    
+    return { success: false, error: { message: "Failed to refresh token" } };
   } catch (error) {
-    logout();
-    throw error;
+    return { 
+      success: false, 
+      error: {
+        message: error.response?.data?.detail || "Token refresh failed",
+        status: error.response?.status
+      }
+    };
   }
 };
 
 export const logout = () => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
 };
 
 export const getCurrentUser = () => {
-  const token = localStorage.getItem('access_token');
-  if (!token) return null;
+  const userStr = localStorage.getItem("user");
+  if (!userStr) return null;
   
-  // You can decode the token to get user info if needed
-  // Note: This doesn't verify the token, just decodes it
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(
-    atob(base64)
-      .split('')
-      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-      .join('')
-  );
-  
-  return JSON.parse(jsonPayload);
+  try {
+    return JSON.parse(userStr);
+  } catch (error) {
+    return null;
+  }
 };

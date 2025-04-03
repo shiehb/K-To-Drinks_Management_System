@@ -14,14 +14,14 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
   const [toastId, setToastId] = useState(null)
 
   // Extract user information from the auth context
-const userName = user?.username || "Username"
-const firstName = user?.firstName || ""
-const lastName = user?.lastName || ""
-const displayName = firstName && lastName ? `${firstName} ${lastName}` : userName
+  const userName = user?.username || "Username"
+  const firstName = user?.firstName || ""
+  const lastName = user?.lastName || ""
+  const displayName = firstName && lastName ? `${firstName} ${lastName}` : userName
 
   // Add a useEffect to log user information for debugging
   useEffect(() => {
-    console.log("Current user in Header:", user)
+    // Removed console.log for production
   }, [user])
 
   const toggleMenu = () => {
@@ -76,6 +76,11 @@ const displayName = firstName && lastName ? `${firstName} ${lastName}` : userNam
 
   return (
     <>
+      {/* Skip to content link for keyboard users */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to content
+      </a>
+
       <header className="top-header" role="banner">
         <div className="header-left">
           <div className="header-controls">
@@ -85,7 +90,9 @@ const displayName = firstName && lastName ? `${firstName} ${lastName}` : userNam
               aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
-              <span className="material-icons">{sidebarOpen ? "menu_open" : "menu"}</span>
+              <span className="material-icons" aria-hidden="true">
+                {sidebarOpen ? "menu_open" : "menu"}
+              </span>
             </button>
           </div>
 
@@ -109,7 +116,9 @@ const displayName = firstName && lastName ? `${firstName} ${lastName}` : userNam
             aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <span className="material-icons">{darkMode ? "light_mode" : "dark_mode"}</span>
+            <span className="material-icons" aria-hidden="true">
+              {darkMode ? "light_mode" : "dark_mode"}
+            </span>
           </button>
 
           <div
@@ -118,12 +127,18 @@ const displayName = firstName && lastName ? `${firstName} ${lastName}` : userNam
             role="button"
             tabIndex="0"
             aria-label={isMenuOpen ? "Close Menu" : "Open Menu"}
+            aria-expanded={isMenuOpen}
+            aria-haspopup="true"
             onKeyDown={(e) => e.key === "Enter" && toggleMenu()}
           >
             {isMenuOpen ? (
-              <span className="material-icons">close</span>
+              <span className="material-icons" aria-hidden="true">
+                close
+              </span>
             ) : (
-              <span className="material-icons">account_circle</span>
+              <span className="material-icons" aria-hidden="true">
+                account_circle
+              </span>
             )}
           </div>
         </div>
@@ -135,10 +150,13 @@ const displayName = firstName && lastName ? `${firstName} ${lastName}` : userNam
           onMouseEnter={() => setMenuHovered(true)}
           onMouseLeave={() => setMenuHovered(false)}
           role="menu"
+          aria-label="User menu"
         >
           <ul>
             <li role="menuitem" className="user-profile">
-              <span className="material-icons profile-icon">account_circle</span>
+              <span className="material-icons profile-icon" aria-hidden="true">
+                account_circle
+              </span>
               <div>
                 <div className="user-full-name">
                   {firstName} {lastName}
@@ -148,22 +166,30 @@ const displayName = firstName && lastName ? `${firstName} ${lastName}` : userNam
             </li>
 
             <li role="menuitem" className="menu-item">
-              <span className="material-icons nav-icon">notifications</span>
+              <span className="material-icons nav-icon" aria-hidden="true">
+                notifications
+              </span>
               Notifications
             </li>
 
             <li role="menuitem" className="menu-item">
-              <span className="material-icons nav-icon">assessment</span>
+              <span className="material-icons nav-icon" aria-hidden="true">
+                assessment
+              </span>
               Reports
             </li>
 
             <li role="menuitem" className="menu-item" onClick={toggleDarkMode}>
-              <span className="material-icons nav-icon">{darkMode ? "light_mode" : "dark_mode"}</span>
+              <span className="material-icons nav-icon" aria-hidden="true">
+                {darkMode ? "light_mode" : "dark_mode"}
+              </span>
               {darkMode ? "Light Mode" : "Dark Mode"}
             </li>
 
             <li role="menuitem" className="menu-item logout-item" onClick={handleLogoutClick}>
-              <span className="material-icons nav-icon">logout</span>
+              <span className="material-icons nav-icon" aria-hidden="true">
+                logout
+              </span>
               Log out
             </li>
           </ul>

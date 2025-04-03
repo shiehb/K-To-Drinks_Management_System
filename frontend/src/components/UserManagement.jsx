@@ -78,7 +78,7 @@ export default function UserManagement({ users, loading, setUsers }) {
           const response = await api({
             url,
             method,
-            data: userForm
+            data: userForm,
           })
 
           const data = response.data
@@ -92,11 +92,9 @@ export default function UserManagement({ users, loading, setUsers }) {
           setIsUserModalOpen(false)
           resetUserForm()
         } catch (error) {
-          console.error('User save error:', error.response || error)
-          const errorMsg = error.response?.data?.message || 
-                         error.response?.data?.detail || 
-                         error.message || 
-                         "Failed to save user"
+          console.error("User save error:", error.response || error)
+          const errorMsg =
+            error.response?.data?.message || error.response?.data?.detail || error.message || "Failed to save user"
           toast.error(errorMsg)
         } finally {
           setIsLoading(false)
@@ -147,10 +145,8 @@ export default function UserManagement({ users, loading, setUsers }) {
       toast.success("User archived successfully!")
     } catch (error) {
       console.error("Archive error:", error.response || error)
-      const errorMsg = error.response?.data?.message || 
-                     error.response?.data?.detail || 
-                     error.message || 
-                     "Failed to archive user"
+      const errorMsg =
+        error.response?.data?.message || error.response?.data?.detail || error.message || "Failed to archive user"
       toast.error(errorMsg)
     }
   }
@@ -177,10 +173,8 @@ export default function UserManagement({ users, loading, setUsers }) {
       toast.success("User unarchived successfully!")
     } catch (error) {
       console.error("Unarchive error:", error.response || error)
-      const errorMsg = error.response?.data?.message || 
-                     error.response?.data?.detail || 
-                     error.message || 
-                     "Failed to unarchive user"
+      const errorMsg =
+        error.response?.data?.message || error.response?.data?.detail || error.message || "Failed to unarchive user"
       toast.error(errorMsg)
     }
   }
@@ -620,3 +614,4 @@ export default function UserManagement({ users, loading, setUsers }) {
     </Card>
   )
 }
+

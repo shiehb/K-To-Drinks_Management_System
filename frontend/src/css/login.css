@@ -326,6 +326,33 @@
   background-color: #d86b57;
 }
 
+/* Add error input styling */
+.error-input {
+  border-color: var(--error-color) !important;
+  box-shadow: 0 0 0 2px rgba(var(--error-color-rgb), 0.2) !important;
+}
+
+.error-text {
+  color: var(--error-color);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* Improve focus states for better accessibility */
+.inputs:focus,
+.button:focus,
+.theme-toggle-btn:focus,
+.password-toggle-icon:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(194, 58, 34, 0.3);
+}
+
+/* Add keyboard focus styles */
+.checkbox-container input:focus + .checkmark {
+  box-shadow: 0 0 0 3px rgba(194, 58, 34, 0.3);
+}
+
 /* Error message */
 .error-message {
   position: fixed;
@@ -347,6 +374,9 @@
   max-width: 400px;
   z-index: 1000;
   animation: fadeIn 0.3s ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 @keyframes fadeIn {
@@ -358,6 +388,18 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+}
+
+/* Improve contrast for dark mode */
+.dark .error-text {
+  color: #ff6b6b;
+}
+
+.dark .inputs:focus,
+.dark .button:focus,
+.dark .theme-toggle-btn:focus,
+.dark .password-toggle-icon:focus {
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.4);
 }
 
 /* Loader overlay */
@@ -377,6 +419,128 @@
 
 .dark .loader-overlay {
   background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Skip to content link for keyboard users */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-color);
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* Connection status banner */
+.connection-status-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 1001;
+  font-weight: 500;
+}
+
+.connection-status-banner.disconnected {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-bottom: 1px solid #ef4444;
+}
+
+.connection-status-banner.connected {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-bottom: 1px solid #10b981;
+}
+
+.retry-connection-btn {
+  margin-left: 10px;
+  padding: 5px 10px;
+  background-color: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.retry-connection-btn:hover {
+  background-color: #991b1b;
+}
+
+.retry-connection-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Reconnect button styling */
+.reconnect-button {
+  background-color: #b91c1c !important;
+}
+
+.reconnect-button:hover {
+  background-color: #991b1b !important;
+}
+
+/* Spinner animation */
+.spin-animation {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Connection checking container */
+.connection-checking-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-color);
+  z-index: 1000;
+}
+
+.connection-checking-container p {
+  margin-top: 20px;
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+/* Disabled form elements */
+.inputs:disabled {
+  background-color: rgba(0, 0, 0, 0.05);
+  cursor: not-allowed;
+}
+
+.dark .inputs:disabled {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Media Queries for Responsive Design */

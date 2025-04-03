@@ -1,424 +1,271 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-import { toast } from "react-toastify"
-import { storeService } from "../../services/api"
-import MapLocationPicker from "../common/MapLocationPicker"
-import { Button, Card, Input, Select } from "../ui"
-import { useFormik } from "formik"
-import * as Yup from "yup"
+import { useState } from "react"
+import { MapPin, ExternalLink } from "lucide-react"
+import StoreMap from "./StoreMap"
+import { validateStoreForm } from "../../utils/validators"
 
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-const DEFAULT_LAT = 16.63614047965268
-const DEFAULT_LNG = 120.31339285476308
+const StoreForm = ({
+  formData,
+  handleFormInputChange,
+  markerPosition,
+  handleMarkerPositionChange,
+  handleSaveNewData,
+  handleClosePopup,
+  isEditMode,
+  isLoading,
+}) => {
+  const [validationErrors, setValidationErrors] = useState({})
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-const StoreForm = () => {
-  const navigate = useNavigate()
-  const { id } = useParams()
-  const [isLoading, setIsLoading] = useState(false)
-  const [markerPosition, setMarkerPosition] = useState({
-    lat: DEFAULT_LAT,
-    lng: DEFAULT_LNG,
-  })
-  const [draftSaved, setDraftSaved] = useState(false)
-  const [draftInterval, setDraftIntervalId] = useState(null)
-
-  // Form validation schema
-  const validationSchema = Yup.object({
-    name: Yup.string().required("Store name is required"),
-    location: Yup.string().required("Location is required"),
-    owner_name: Yup.string().required("Owner name is required"),
-    number: Yup.string()
-      .required("Contact number is required")
-      .matches(/^[0-9+]+$/, "Contact number should contain only numbers and + sign"),
-    email: Yup.string().email("Invalid email address").nullable(),
-    day: Yup.string().required("Delivery day is required"),
-    lat: Yup.number().required("Latitude is required"),
-    lng: Yup.number().required("Longitude is required"),
-  })
-
-  // Initialize formik
-  const formik = useFormik({
-    initialValues: {
-      name: "",
-      location: "",
-      lat: DEFAULT_LAT,
-      lng: DEFAULT_LNG,
-      owner_name: "",
-      email: "",
-      number: "",
-      day: days[0],
-    },
-    validationSchema,
-    onSubmit: handleSubmit,
-  })
-
-  // Load store data if editing
-  useEffect(() => {
-    if (id) {
-      fetchStoreData()
-    } else {
-      // Initialize user location for new stores
-      initUserLocation()
-    }
-
-    // Setup auto-save draft interval
-    const intervalId = setInterval(saveDraft, 30000) // Save draft every 30 seconds
-    setDraftIntervalId(intervalId)
-
-    // Load draft if available
-    const savedDraft = localStorage.getItem(`store_draft_${id || "new"}`)
-    if (savedDraft) {
-      const draftData = JSON.parse(savedDraft)
-      formik.setValues(draftData)
-      setMarkerPosition({ lat: draftData.lat, lng: draftData.lng })
-      toast.info("Draft loaded")
-    }
-
-    return () => {
-      if (draftInterval) clearInterval(draftInterval)
-    }
-  }, [id])
-
-  // Fetch store data for editing
-  const fetchStoreData = async () => {
-    setIsLoading(true)
-    try {
-      const response = await storeService.getById(id)
-      if (response.success) {
-        const storeData = response.data
-        formik.setValues({
-          name: storeData.name,
-          location: storeData.location,
-          lat: storeData.lat,
-          lng: storeData.lng,
-          owner_name: storeData.owner_name,
-          email: storeData.email || "",
-          number: storeData.number,
-          day: storeData.day,
-        })
-        setMarkerPosition({ lat: storeData.lat, lng: storeData.lng })
-      } else {
-        toast.error("Failed to load store data")
-        navigate("/stores")
-      }
-    } catch (error) {
-      console.error("Error fetching store:", error)
-      toast.error("Error loading store data")
-      navigate("/stores")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Initialize user location
-  const initUserLocation = async () => {
-    try {
-      if (navigator.geolocation) {
+  // Get current location
+  const handleGetCurrentLocation = async () => {
+    if (navigator.geolocation) {
+      try {
         const position = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
-            maximumAge: 60000,
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
           })
         })
 
         const { latitude, longitude } = position.coords
-        const lat = latitude && !isNaN(latitude) ? latitude : DEFAULT_LAT
-        const lng = longitude && !isNaN(longitude) ? longitude : DEFAULT_LNG
+        handleMarkerPositionChange(latitude, longitude)
 
-        setMarkerPosition({ lat, lng })
-        formik.setFieldValue("lat", lat)
-        formik.setFieldValue("lng", lng)
-      }
-    } catch (err) {
-      console.error("Location error:", err)
-      toast.error("Using default location")
-    }
-  }
+        // Try to get address from coordinates
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        )
 
-  // Handle marker position change from map
-  const handleMarkerPositionChange = (lat, lng) => {
-    const newLat = lat || DEFAULT_LAT
-    const newLng = lng || DEFAULT_LNG
-    setMarkerPosition({ lat: newLat, lng: newLng })
-    formik.setFieldValue("lat", newLat)
-    formik.setFieldValue("lng", newLng)
-  }
+        if (response.ok) {
+          const data = await response.json()
+          if (data.display_name) {
+            const newFormData = {
+              ...formData,
+              location: data.display_name,
+              lat: latitude,
+              lng: longitude,
+            }
 
-  // Get current location
-  const handleGetCurrentLocation = async () => {
-    setIsLoading(true)
-    try {
-      if (!navigator.geolocation) {
-        toast.error("Geolocation is not supported by your browser")
-        setIsLoading(false)
-        return
-      }
+            // Update all form fields at once
+            Object.keys(newFormData).forEach((key) => {
+              const input = document.getElementById(key)
+              if (input) {
+                input.value = newFormData[key]
+              }
+            })
 
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        })
-      })
-
-      const { latitude, longitude } = position.coords
-
-      // Update marker position
-      setMarkerPosition({ lat: latitude, lng: longitude })
-      formik.setFieldValue("lat", latitude)
-      formik.setFieldValue("lng", longitude)
-
-      // Try to get address from coordinates
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.display_name) {
-          formik.setFieldValue("location", data.display_name)
+            // Trigger change event manually
+            handleFormInputChange({ target: { name: "location", value: data.display_name } })
+          }
         }
+      } catch (error) {
+        console.error("Error getting location:", error)
+        alert("Unable to get your location. Please check your browser permissions.")
       }
-
-      toast.success("Current location detected successfully!")
-    } catch (error) {
-      console.error("Location error:", error)
-      toast.error(`Failed to get location: ${error.message}`)
-    } finally {
-      setIsLoading(false)
+    } else {
+      alert("Geolocation is not supported by your browser")
     }
   }
 
-  // Save draft
-  const saveDraft = () => {
-    if (formik.dirty) {
-      localStorage.setItem(`store_draft_${id || "new"}`, JSON.stringify(formik.values))
-      setDraftSaved(true)
-      setTimeout(() => setDraftSaved(false), 3000)
+  // Validate form before submission
+  const handleSubmit = () => {
+    const { isValid, errors } = validateStoreForm(formData)
+
+    if (!isValid) {
+      setValidationErrors(errors)
+      return
     }
-  }
 
-  // Handle form submission
-  async function handleSubmit(values) {
-    setIsLoading(true)
-    try {
-      let response
-
-      if (id) {
-        response = await storeService.update(id, values)
-      } else {
-        response = await storeService.create(values)
-      }
-
-      if (response.success) {
-        toast.success(`Store ${id ? "updated" : "created"} successfully!`)
-        // Clear draft after successful save
-        localStorage.removeItem(`store_draft_${id || "new"}`)
-        navigate("/stores")
-      } else {
-        // Handle validation errors
-        if (response.error.fields) {
-          Object.keys(response.error.fields).forEach((field) => {
-            formik.setFieldError(field, response.error.fields[field])
-          })
-        } else {
-          toast.error(response.error.message)
-        }
-      }
-    } catch (error) {
-      console.error("Save failed:", error)
-      toast.error("Failed to save store")
-    } finally {
-      setIsLoading(false)
-    }
+    setValidationErrors({})
+    handleSaveNewData()
   }
 
   return (
-    <div className="store-form-container">
-      <Card className="p-6 max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6">{id ? "Edit Store" : "Create New Store"}</h2>
-
-        <form onSubmit={formik.handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-1">
-                  Store Name *
-                </label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formik.values.name}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  placeholder="Enter store name"
-                  className={formik.touched.name && formik.errors.name ? "border-red-500" : ""}
-                />
-                {formik.touched.name && formik.errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{formik.errors.name}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium mb-1">
-                  Location *
-                </label>
-                <div className="flex">
-                  <Input
-                    id="location"
-                    name="location"
-                    value={formik.values.location}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    placeholder="Enter store location"
-                    className={`flex-grow ${formik.touched.location && formik.errors.location ? "border-red-500" : ""}`}
-                  />
-                  <Button type="button" onClick={handleGetCurrentLocation} className="ml-2" disabled={isLoading}>
-                    <i className="fas fa-map-marker-alt"></i>
-                  </Button>
-                </div>
-                {formik.touched.location && formik.errors.location && (
-                  <p className="text-red-500 text-sm mt-1">{formik.errors.location}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="owner_name" className="block text-sm font-medium mb-1">
-                  Owner Name *
-                </label>
-                <Input
-                  id="owner_name"
-                  name="owner_name"
-                  value={formik.values.owner_name}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  placeholder="Enter owner name"
-                  className={formik.touched.owner_name && formik.errors.owner_name ? "border-red-500" : ""}
-                />
-                {formik.touched.owner_name && formik.errors.owner_name && (
-                  <p className="text-red-500 text-sm mt-1">{formik.errors.owner_name}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="number" className="block text-sm font-medium mb-1">
-                    Contact Number *
-                  </label>
-                  <Input
-                    id="number"
-                    name="number"
-                    value={formik.values.number}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    placeholder="Enter contact number"
-                    className={formik.touched.number && formik.errors.number ? "border-red-500" : ""}
-                  />
-                  {formik.touched.number && formik.errors.number && (
-                    <p className="text-red-500 text-sm mt-1">{formik.errors.number}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">
-                    Email (Optional)
-                  </label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formik.values.email}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    placeholder="Enter email address"
-                    className={formik.touched.email && formik.errors.email ? "border-red-500" : ""}
-                  />
-                  {formik.touched.email && formik.errors.email && (
-                    <p className="text-red-500 text-sm mt-1">{formik.errors.email}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="day" className="block text-sm font-medium mb-1">
-                  Delivery Day *
-                </label>
-                <Select
-                  id="day"
-                  name="day"
-                  value={formik.values.day}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className={formik.touched.day && formik.errors.day ? "border-red-500" : ""}
-                >
-                  {days.map((day) => (
-                    <option key={day} value={day}>
-                      {day}
-                    </option>
-                  ))}
-                </Select>
-                {formik.touched.day && formik.errors.day && (
-                  <p className="text-red-500 text-sm mt-1">{formik.errors.day}</p>
-                )}
-              </div>
+    <>
+      <h2 className="form-title">{isEditMode ? "Edit Store" : "Create New Store"}</h2>
+      <div className="form-container">
+        <div className="form-column">
+          <div className="form-group">
+            <label htmlFor="name">Store Name *</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleFormInputChange}
+              required
+              placeholder="Enter store name"
+              className={validationErrors.name ? "error-input" : ""}
+              aria-invalid={!!validationErrors.name}
+              aria-describedby={validationErrors.name ? "name-error" : undefined}
+            />
+            {validationErrors.name && (
+              <p id="name-error" className="error-text">
+                {validationErrors.name}
+              </p>
+            )}
+          </div>
+          <div className="form-group location-group">
+            <label htmlFor="location">Location *</label>
+            <div className="location-input-wrapper">
+              <input
+                type="text"
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleFormInputChange}
+                required
+                placeholder="Enter store location"
+                className={validationErrors.location ? "error-input" : ""}
+                aria-invalid={!!validationErrors.location}
+                aria-describedby={validationErrors.location ? "location-error" : undefined}
+              />
+              <button
+                type="button"
+                onClick={handleGetCurrentLocation}
+                className="get-location-btn"
+                title="Get my current location"
+                aria-label="Get my current location"
+              >
+                <MapPin size={16} />
+              </button>
             </div>
+            {validationErrors.location && (
+              <p id="location-error" className="error-text">
+                {validationErrors.location}
+              </p>
+            )}
+          </div>
+          <div className="form-group">
+            <label htmlFor="owner_name">Owner Name *</label>
+            <input
+              type="text"
+              id="owner_name"
+              name="owner_name"
+              value={formData.owner_name}
+              onChange={handleFormInputChange}
+              required
+              placeholder="Enter owner name"
+              className={validationErrors.owner_name ? "error-input" : ""}
+              aria-invalid={!!validationErrors.owner_name}
+              aria-describedby={validationErrors.owner_name ? "owner-error" : undefined}
+            />
+            {validationErrors.owner_name && (
+              <p id="owner-error" className="error-text">
+                {validationErrors.owner_name}
+              </p>
+            )}
+          </div>
 
-            <div className="space-y-4">
-              <div className="h-64 md:h-80 border rounded-md overflow-hidden">
-                <MapLocationPicker
-                  lat={markerPosition.lat}
-                  lng={markerPosition.lng}
-                  onMarkerPositionChange={handleMarkerPositionChange}
-                  isDraggable={true}
-                  markerLabel={formik.values.name || "New Store"}
-                  markerAddress={formik.values.location || ""}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Latitude</label>
-                  <Input type="text" value={markerPosition.lat.toFixed(6)} readOnly className="bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Longitude</label>
-                  <Input type="text" value={markerPosition.lng.toFixed(6)} readOnly className="bg-gray-50" />
-                </div>
-              </div>
-
-              <div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    window.open(`https://www.google.com/maps?q=${markerPosition.lat},${markerPosition.lng}`, "_blank")
-                  }
-                  className="w-full"
-                >
-                  <i className="fas fa-external-link-alt mr-2"></i>
-                  Preview in Google Maps
-                </Button>
-              </div>
+          <div className="contact-grid-form">
+            <div className="form-group">
+              <label htmlFor="number">Contact Number *</label>
+              <input
+                type="tel"
+                id="number"
+                name="number"
+                value={formData.number}
+                onChange={handleFormInputChange}
+                required
+                placeholder="Enter contact number"
+                className={validationErrors.number ? "error-input" : ""}
+                aria-invalid={!!validationErrors.number}
+                aria-describedby={validationErrors.number ? "number-error" : undefined}
+              />
+              {validationErrors.number && (
+                <p id="number-error" className="error-text">
+                  {validationErrors.number}
+                </p>
+              )}
+            </div>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleFormInputChange}
+                placeholder="Enter email address (optional)"
+                className={validationErrors.email ? "error-input" : ""}
+                aria-invalid={!!validationErrors.email}
+                aria-describedby={validationErrors.email ? "email-error" : undefined}
+              />
+              {validationErrors.email && (
+                <p id="email-error" className="error-text">
+                  {validationErrors.email}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t">
-            {draftSaved && <span className="text-green-500 text-sm">Draft saved</span>}
-            <div className="flex gap-4">
-              <Button type="button" variant="outline" onClick={() => navigate("/stores")} disabled={isLoading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading || !formik.isValid}>
-                {isLoading ? "Saving..." : id ? "Update Store" : "Create Store"}
-              </Button>
-            </div>
+          <div className="form-group">
+            <label htmlFor="day">Day *</label>
+            <select
+              id="day"
+              name="day"
+              value={formData.day}
+              onChange={handleFormInputChange}
+              required
+              aria-label="Select delivery day"
+            >
+              {days.map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
           </div>
-        </form>
-      </Card>
-    </div>
+        </div>
+        <div className="map-column">
+          <div className="map-container">
+            <StoreMap
+              lat={markerPosition.lat}
+              lng={markerPosition.lng}
+              onMarkerPositionChange={handleMarkerPositionChange}
+              isDraggable={true}
+              markerLabel={formData.name || "New Store"}
+              markerAddress={formData.location || ""}
+            />
+          </div>
+          <div className="coordinates">
+            <div className="coordinate-item">
+              <span className="coordinate-label">Latitude:</span>
+              <span className="coordinate-value">{markerPosition.lat.toFixed(6)}</span>
+            </div>
+            <div className="coordinate-item">
+              <span className="coordinate-label">Longitude:</span>
+              <span className="coordinate-value">{markerPosition.lng.toFixed(6)}</span>
+            </div>
+            <button
+              onClick={() =>
+                window.open(`https://www.google.com/maps?q=${markerPosition.lat},${markerPosition.lng}`, "_blank")
+              }
+              className="preview-map-btn"
+              aria-label="Preview in Google Maps"
+            >
+              <ExternalLink size={16} />
+              Preview in Maps
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="form-actions">
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="save-btn"
+          aria-label={isEditMode ? "Update store" : "Create store"}
+        >
+          {isLoading ? "Saving..." : isEditMode ? "Update Store" : "Create Store"}
+        </button>
+        <button onClick={handleClosePopup} disabled={isLoading} className="cancel-btn" aria-label="Cancel">
+          Cancel
+        </button>
+      </div>
+    </>
   )
 }
 

@@ -1,5 +1,4 @@
-import React from 'react';
-import styled from 'styled-components';
+import styled from "styled-components"
 
 const Loader = () => {
   return (
@@ -8,8 +7,8 @@ const Loader = () => {
         <circle r={20} cy={50} cx={50} />
       </svg>
     </StyledWrapper>
-  );
-};
+  )
+}
 
 const StyledWrapper = styled.div`
   position: fixed;
@@ -60,6 +59,7 @@ const StyledWrapper = styled.div`
       stroke-dashoffset: -125px;
     }
   }
-`;
+`
 
-export default Loader;
+export default Loader
+

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { authService, userService } from "../services/api"
 import { handleApiSuccess } from "../utils/apiErrorHandler"
 import { toast } from "react-toastify"
+import { secureStorage } from "../utils/secureStorage" // We'll create this utility
 
 // Create context
 const AuthContext = createContext()
@@ -22,33 +23,53 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [darkMode, setDarkMode] = useState(() => {
+    // Initialize from localStorage or system preference
+    const savedMode = localStorage.getItem("darkMode")
+    if (savedMode !== null) {
+      return savedMode === "true"
+    }
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+  })
 
-  // Initialize auth state from localStorage on mount
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode((prevMode) => {
+      const newMode = !prevMode
+      localStorage.setItem("darkMode", newMode.toString())
+      document.documentElement.classList.toggle("dark", newMode)
+      return newMode
+    })
+  }
+
+  // Initialize auth state from secureStorage on mount
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem("token")
+        const token = secureStorage.getItem("token")
         if (token) {
           const result = await checkAuth()
           if (!result) {
-            // If token verification fails, clear localStorage
-            localStorage.removeItem("token")
-            localStorage.removeItem("refreshToken")
+            // If token verification fails, clear storage
+            secureStorage.removeItem("token")
+            secureStorage.removeItem("refreshToken")
             setUser(null)
           }
         } else {
           setUser(null)
         }
       } catch (error) {
-        console.error("Auth initialization error:", error)
         setUser(null)
       } finally {
         setLoading(false)
       }
     }
 
+    // Set dark mode class on document
+    document.documentElement.classList.toggle("dark", darkMode)
+
     initAuth()
-  }, [])
+  }, [darkMode])
 
   // Login function
   const login = async (credentials) => {
@@ -61,9 +82,9 @@ export const AuthProvider = ({ children }) => {
       if (result.success) {
         const { access, refresh, user: userData } = result.data
 
-        // Store tokens in localStorage
-        localStorage.setItem("token", access)
-        localStorage.setItem("refreshToken", refresh)
+        // Store tokens in secureStorage
+        secureStorage.setItem("token", access)
+        secureStorage.setItem("refreshToken", refresh)
 
         // Set user state
         setUser(userData)
@@ -75,7 +96,6 @@ export const AuthProvider = ({ children }) => {
         return false
       }
     } catch (error) {
-      console.error("Login error:", error)
       setError("An unexpected error occurred during login")
       return false
     } finally {
@@ -85,9 +105,9 @@ export const AuthProvider = ({ children }) => {
 
   // Logout function
   const logout = () => {
-    // Clear localStorage
-    localStorage.removeItem("token")
-    localStorage.removeItem("refreshToken")
+    // Clear storage
+    secureStorage.removeItem("token")
+    secureStorage.removeItem("refreshToken")
 
     // Clear user state
     setUser(null)
@@ -104,7 +124,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
 
-      const token = localStorage.getItem("token")
+      const token = secureStorage.getItem("token")
       if (!token) {
         return false
       }
@@ -114,7 +134,7 @@ export const AuthProvider = ({ children }) => {
 
       if (!verifyResult.success) {
         // Try to refresh the token
-        const refreshToken = localStorage.getItem("refreshToken")
+        const refreshToken = secureStorage.getItem("refreshToken")
         if (!refreshToken) {
           return false
         }
@@ -125,8 +145,8 @@ export const AuthProvider = ({ children }) => {
           return false
         }
 
-        // Update token in localStorage
-        localStorage.setItem("token", refreshResult.data.access)
+        // Update token in secureStorage
+        secureStorage.setItem("token", refreshResult.data.access)
       }
 
       // Fetch user profile
@@ -139,7 +159,6 @@ export const AuthProvider = ({ children }) => {
 
       return false
     } catch (error) {
-      console.error("Auth check error:", error)
       return false
     } finally {
       setLoading(false)
@@ -161,7 +180,6 @@ export const AuthProvider = ({ children }) => {
         return false
       }
     } catch (error) {
-      console.error("Change password error:", error)
       setError("An unexpected error occurred")
       return false
     } finally {
@@ -178,6 +196,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     checkAuth,
     changePassword,
+    darkMode,
+    toggleDarkMode,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

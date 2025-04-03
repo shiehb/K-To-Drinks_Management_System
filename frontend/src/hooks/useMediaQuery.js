@@ -63,4 +63,6 @@ export const useIsDesktop = () => useMediaQuery("(min-width: 1024px)")
 export const useIsDarkMode = () => useMediaQuery("(prefers-color-scheme: dark)")
 
 // Export the main hook as default
+export { useMediaQuery }
 export default useMediaQuery
+

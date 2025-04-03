@@ -36,7 +36,7 @@ export default function Layout() {
 
   // Log the current route for debugging
   useEffect(() => {
-    console.log("Current route:", location.pathname)
+    // Removed console.log for production
   }, [location])
 
   const toggleSidebar = () => {
@@ -57,7 +57,11 @@ export default function Layout() {
       />
       <div className="content-wrapper">
         <NavBar isOpen={sidebarOpen} isMobile={isMobile} isHidden={sidebarHidden} />
-        <main className={`main-content ${!sidebarOpen ? "expanded" : ""} ${sidebarHidden ? "full-width" : ""}`}>
+        <main
+          className={`main-content ${!sidebarOpen ? "expanded" : ""} ${sidebarHidden ? "full-width" : ""}`}
+          id="main-content"
+          tabIndex="-1"
+        >
           <Outlet />
         </main>
       </div>
