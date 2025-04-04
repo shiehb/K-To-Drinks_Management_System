@@ -124,7 +124,7 @@ export default function Login() {
     <>
       {/* Full-screen loader */}
       {loading && (
-        <div className="loader-overlay" aria-live="polite" aria-busy="true">
+        <div className="loader-overlay" role="alert" aria-live="assertive" aria-busy="true">
           <Loader />
           <p className="loading-text">Please wait...</p>
         </div>
@@ -132,18 +132,21 @@ export default function Login() {
 
       {/* Login Container */}
       <div className="login-wrapper">
-        {/* Dark mode toggle */}
+        {/* Dark mode toggle with improved accessibility */}
         <button
           className="theme-toggle-btn"
           onClick={toggleDarkMode}
           aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-pressed={darkMode}
         >
-          <i className={`fas fa-${darkMode ? "sun" : "moon"}`}></i>
+          <i className={`fas fa-${darkMode ? "sun" : "moon"}`} aria-hidden="true"></i>
         </button>
 
         <div className="login-container">
           {/* Left Section */}
-          <div className="login-left">
+          <div className="login-left" aria-hidden="true">
+            {" "}
+            {/* Mark as decorative for screen readers */}
             <div className="login-image">
               <div className="overlay"></div>
               <div className="login-title">
@@ -155,19 +158,19 @@ export default function Login() {
 
           {/* Right Section */}
           <div className="login-right">
-            {/* Login Form */}
-            <form className="login-form" onSubmit={handleSubmit}>
+            {/* Login Form with improved accessibility */}
+            <form className="login-form" onSubmit={handleSubmit} aria-labelledby="login-heading">
               {/* Welcome Message */}
-              <h1>Welcome Back</h1>
+              <h1 id="login-heading">Welcome Back</h1>
               <p>Login to your account to continue</p>
 
               {/* Username field */}
               <div className="input-group">
-                <label htmlFor="username" className="labels">
+                <label htmlFor="username" className="labels" id="username-label">
                   Username
                 </label>
                 <div className="input-with-icon">
-                  <User className="input-icon" />
+                  <User className="input-icon" aria-hidden="true" />
                   <input
                     type="text"
                     id="username"
@@ -182,23 +185,24 @@ export default function Login() {
                     onKeyDown={handleKeyDown}
                     aria-invalid={errors.username ? "true" : "false"}
                     aria-describedby={errors.username ? "username-error" : undefined}
+                    aria-labelledby="username-label"
                   />
                 </div>
                 {errors.username && (
-                  <div className="error-message-inline" id="username-error">
-                    <AlertCircle size={16} />
+                  <div className="error-message-inline" id="username-error" role="alert">
+                    <AlertCircle size={16} aria-hidden="true" />
                     <span>{errors.username}</span>
                   </div>
                 )}
               </div>
 
-              {/* Password field */}
+              {/* Password field with improved accessibility */}
               <div className="input-group">
-                <label htmlFor="password" className="labels">
+                <label htmlFor="password" className="labels" id="password-label">
                   Password
                 </label>
                 <div className="input-with-icon">
-                  <Lock className="input-icon" />
+                  <Lock className="input-icon" aria-hidden="true" />
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
@@ -213,27 +217,28 @@ export default function Login() {
                     onKeyDown={handleKeyDown}
                     aria-invalid={errors.password ? "true" : "false"}
                     aria-describedby={errors.password ? "password-error" : undefined}
+                    aria-labelledby="password-label"
                   />
                   <button
                     type="button"
                     className="password-toggle-icon"
                     onClick={toggleShowPassword}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    tabIndex="0"
+                    aria-pressed={showPassword}
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
                   </button>
                 </div>
                 {errors.password && (
-                  <div className="error-message-inline" id="password-error">
-                    <AlertCircle size={16} />
+                  <div className="error-message-inline" id="password-error" role="alert">
+                    <AlertCircle size={16} aria-hidden="true" />
                     <span>{errors.password}</span>
                   </div>
                 )}
               </div>
 
-              {/* Login button */}
-              <button type="submit" className="button" disabled={loading} aria-busy={loading}>
+              {/* Login button with improved accessibility */}
+              <button type="submit" className="button" disabled={loading} aria-busy={loading} aria-disabled={loading}>
                 {loading ? "LOGGING IN..." : "LOGIN"}
               </button>
             </form>

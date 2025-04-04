@@ -3,16 +3,16 @@
 import { useState, useRef } from "react"
 import { toast } from "react-toastify"
 import api from "../api/api_url"
-import { Archive, Download, Edit, RefreshCcw, Search, UserPlus } from "lucide-react"
+import { Archive, Download, Edit, RefreshCcw, UserPlus, Pause, Play, Search } from "lucide-react"
 
 // Import shadcn components
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 
 import "../css/usermanagement.css"
 
@@ -25,10 +25,14 @@ export default function UserManagement({ users, loading, setUsers }) {
   const [userForm, setUserForm] = useState({
     id: null,
     username: "",
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
+    phone_number: "",
     role: "employee",
     status: "active",
+    is_staff: false,
+    is_active: true,
   })
   const [isLoading, setIsLoading] = useState(false)
   const [confirmationDialog, setConfirmationDialog] = useState({
@@ -43,9 +47,8 @@ export default function UserManagement({ users, loading, setUsers }) {
     e.preventDefault()
     setIsLoading(true)
 
-    // Check if required fields are filled
-    if (!userForm.username || !userForm.name) {
-      toast.error("Username and Name are required.")
+    if (!userForm.username?.trim() || !userForm.first_name?.trim() || !userForm.last_name?.trim()) {
+      toast.error("Username, First Name and Last Name are required.")
       setIsLoading(false)
       return
     }
@@ -55,22 +58,15 @@ export default function UserManagement({ users, loading, setUsers }) {
       `Are you sure you want to ${userForm.id ? "save changes to" : "add"} this user?`,
       async () => {
         try {
-          // Check for duplicates
           const isDuplicateUsername = users.some(
-            (user) => user.username.toLowerCase() === userForm.username.toLowerCase() && user.id !== userForm.id,
-          )
-          const isDuplicateName = users.some(
-            (user) => user.name.toLowerCase() === userForm.name.toLowerCase() && user.id !== userForm.id,
+            (user) => user.username?.toLowerCase() === userForm.username?.toLowerCase() && user.id !== userForm.id,
           )
 
           if (isDuplicateUsername) throw new Error("Username is already taken.")
-          if (isDuplicateName) throw new Error("Name is already taken.")
 
-          // Determine the API URL and method
           const url = userForm.id ? `/users/${userForm.id}/` : `/users/`
           const method = userForm.id ? "put" : "post"
 
-          // Make the API call using axios instance
           const response = await api({
             url,
             method,
@@ -104,10 +100,14 @@ export default function UserManagement({ users, loading, setUsers }) {
     setUserForm({
       id: null,
       username: "",
-      name: "",
+      first_name: "",
+      last_name: "",
       email: "",
+      phone_number: "",
       role: "employee",
       status: "active",
+      is_staff: false,
+      is_active: true,
     })
   }
 
@@ -131,9 +131,7 @@ export default function UserManagement({ users, loading, setUsers }) {
       const userToArchive = users.find((user) => user.id === id)
       if (!userToArchive) throw new Error("User not found")
 
-      // Create a copy of the user object with updated status
       const updatedUser = { ...userToArchive, status: "archived" }
-
       const response = await api.put(`/users/${id}/`, updatedUser)
 
       const data = response.data
@@ -159,9 +157,7 @@ export default function UserManagement({ users, loading, setUsers }) {
       const userToUnarchive = users.find((user) => user.id === id)
       if (!userToUnarchive) throw new Error("User not found")
 
-      // Create a copy of the user object with updated status
       const updatedUser = { ...userToUnarchive, status: "active" }
-
       const response = await api.put(`/users/${id}/`, updatedUser)
 
       const data = response.data
@@ -175,12 +171,59 @@ export default function UserManagement({ users, loading, setUsers }) {
     }
   }
 
-  // Filter Users
+  // Deactivate User
+  const handleDeactivateUser = (id) => {
+    showConfirmationDialog("Deactivate User", "Are you sure you want to deactivate this user?", () =>
+      confirmDeactivation(id),
+    )
+  }
+
+  const confirmDeactivation = async (id) => {
+    try {
+      const userToDeactivate = users.find((user) => user.id === id)
+      if (!userToDeactivate) throw new Error("User not found")
+
+      const updatedUser = { ...userToDeactivate, status: "inactive" }
+      const response = await api.put(`/users/${id}/`, updatedUser)
+
+      const data = response.data
+      setUsers(users.map((user) => (user.id === id ? data : user)))
+      toast.success("User deactivated successfully!")
+    } catch (error) {
+      console.error("Deactivation error:", error)
+      toast.error(error.response?.data?.message || "Failed to deactivate user")
+    }
+  }
+
+  // Activate User
+  const handleActivateUser = (id) => {
+    showConfirmationDialog("Activate User", "Are you sure you want to activate this user?", () => confirmActivation(id))
+  }
+
+  const confirmActivation = async (id) => {
+    try {
+      const userToActivate = users.find((user) => user.id === id)
+      if (!userToActivate) throw new Error("User not found")
+
+      const updatedUser = { ...userToActivate, status: "active" }
+      const response = await api.put(`/users/${id}/`, updatedUser)
+
+      const data = response.data
+      setUsers(users.map((user) => (user.id === id ? data : user)))
+      toast.success("User activated successfully!")
+    } catch (error) {
+      console.error("Activation error:", error)
+      toast.error(error.response?.data?.message || "Failed to activate user")
+    }
+  }
+
+  // Filter Users - Updated to show inactive users in active tab
   const filteredUsers = users.filter(
     (user) =>
-      (activeTab === "archived" ? user.status === "archived" : user.status === "active") &&
-      (user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (activeTab === "archived" ? user.status === "archived" : user.status !== "archived") &&
+      (user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (roleFilter === "all" || roleFilter === "" || user.role === roleFilter),
   )
 
@@ -191,7 +234,6 @@ export default function UserManagement({ users, loading, setUsers }) {
         toast.error("No users to export based on the current filter.")
         return
       }
-
       showConfirmationDialog("Export User Data", "Are you sure you want to export user data?", confirmExport)
     } catch (error) {
       toast.error(`Failed to export user data: ${error.message || "Unknown error"}`)
@@ -204,27 +246,33 @@ export default function UserManagement({ users, loading, setUsers }) {
       const date = now.toISOString().split("T")[0]
       const time = now.toTimeString().split(" ")[0].replace(/:/g, "-")
 
-      // Improved CSV formatting with proper headers and data
-      const headers = ["ID", "Username", "Full Name", "Email", "Role", "Status"]
-
-      // Create CSV content with proper escaping for special characters
+      const headers = ["ID", "Username", "First Name", "Last Name", "Email", "Phone", "Role", "Status"]
       const csvContent =
         "data:text/csv;charset=utf-8," +
         headers.join(",") +
         "\n" +
         filteredUsers
           .map((user) => {
-            // Escape fields that might contain commas
-            const escapedName = `"${capitalizeEachWord(user.name)}"`
+            const escapedFirstName = `"${capitalizeEachWord(user.first_name)}"`
+            const escapedLastName = `"${capitalizeEachWord(user.last_name)}"`
             const escapedEmail = `"${user.email || ""}"`
-            return [user.id, user.username, escapedName, escapedEmail, user.role, user.status].join(",")
+            return [
+              user.id,
+              user.username,
+              escapedFirstName,
+              escapedLastName,
+              escapedEmail,
+              user.phone_number || "",
+              user.role,
+              user.status,
+            ].join(",")
           })
           .join("\n")
 
       const encodedUri = encodeURI(csvContent)
       const link = document.createElement("a")
       link.setAttribute("href", encodedUri)
-      link.setAttribute("download", `K-TO-DRINK_Trading_users_${date}_${time}.csv`)
+      link.setAttribute("download", `users_export_${date}_${time}.csv`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -237,7 +285,34 @@ export default function UserManagement({ users, loading, setUsers }) {
 
   // Utility Functions
   const capitalizeEachWord = (str) => {
-    return str.replace(/\b\w/g, (char) => char.toUpperCase())
+    if (!str) return ""
+    return str.toString().replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+
+  const getRoleDisplayName = (role) => {
+    switch (role) {
+      case "manager":
+        return "Manager"
+      case "delivery_driver":
+        return "Delivery Driver"
+      case "employee":
+        return "Employee"
+      default:
+        return role.charAt(0).toUpperCase() + role.slice(1)
+    }
+  }
+
+  const getStatusDisplayName = (status) => {
+    switch (status) {
+      case "active":
+        return "Active"
+      case "inactive":
+        return "Inactive"
+      case "archived":
+        return "Archived"
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1)
+    }
   }
 
   const handleSearch = (e) => {
@@ -252,7 +327,12 @@ export default function UserManagement({ users, loading, setUsers }) {
 
   const openUserModal = (user = null) => {
     if (user) {
-      setUserForm({ ...user })
+      setUserForm({
+        ...user,
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        phone_number: user.phone_number || "",
+      })
     } else {
       resetUserForm()
     }
@@ -263,20 +343,6 @@ export default function UserManagement({ users, loading, setUsers }) {
     showConfirmationDialog("Cancel Changes", "Are you sure you want to cancel? Unsaved changes will be lost.", () =>
       setIsUserModalOpen(false),
     )
-  }
-
-  // Get role display name
-  const getRoleDisplayName = (role) => {
-    switch (role) {
-      case "manager":
-        return "Manager"
-      case "delivery_driver":
-        return "Delivery Driver"
-      case "employee":
-        return "Employee"
-      default:
-        return role.charAt(0).toUpperCase() + role.slice(1)
-    }
   }
 
   return (
@@ -297,72 +363,68 @@ export default function UserManagement({ users, loading, setUsers }) {
         </div>
       </CardHeader>
       <CardContent className="card-content">
-        <Tabs defaultValue="active" value={activeTab} onValueChange={setActiveTab} className="tabs-container">
-          <div className="filter-container">
-            <TabsList className="tabs-list">
-              <TabsTrigger value="active" className="tab">
-                Active Users
-              </TabsTrigger>
-              <TabsTrigger value="archived" className="tab">
-                Archived Users
-              </TabsTrigger>
-            </TabsList>
+        {/* Replace the old filter container with the new FilterBar component */}
+        <div className="filter-bar">
+          <div className="tabs-container">
+            <button
+              className={`tab-button ${activeTab === "active" ? "active" : ""}`}
+              onClick={() => setActiveTab("active")}
+            >
+              Manage Users
+            </button>
+            <button
+              className={`tab-button ${activeTab === "archived" ? "active" : ""}`}
+              onClick={() => setActiveTab("archived")}
+            >
+              Archived Users
+            </button>
+          </div>
+
+          <div className="filters-container">
             <div className="search-container">
-              <div className="search-input-container">
-                <Search className="search-icon" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  onFocus={handleFocus}
-                  ref={inputRef}
-                  className="search-input"
-                />
-              </div>
-              <Select value={roleFilter} onValueChange={setRoleFilter} className="role-select">
-                <SelectTrigger className="select-trigger">
+              <Search className="search-icon" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={handleSearch}
+                onFocus={handleFocus}
+                ref={inputRef}
+                className="search-input"
+              />
+            </div>
+
+            <div className="role-select-container">
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="role-select-trigger">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
-                <SelectContent className="select-content">
-                  <SelectItem value="all" className="select-item">
-                    All Roles
-                  </SelectItem>
-                  <SelectItem value="manager" className="select-item">
-                    Manager
-                  </SelectItem>
-                  <SelectItem value="delivery_driver" className="select-item">
-                    Delivery Driver
-                  </SelectItem>
-                  <SelectItem value="employee" className="select-item">
-                    Employee
-                  </SelectItem>
+                <SelectContent className="role-select-content">
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="delivery_driver">Delivery Driver</SelectItem>
+                  <SelectItem value="employee">Employee</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="status-container">
-            <div className="status-content">
-              <div className="status-text">
-                {loading ? (
-                  <span>Loading users...</span>
-                ) : (
-                  <span>
-                    Showing <strong>{filteredUsers.length}</strong> of{" "}
-                    <strong>
-                      {
-                        users.filter((user) =>
-                          activeTab === "archived" ? user.status === "archived" : user.status === "active",
-                        ).length
-                      }
-                    </strong>{" "}
-                    {activeTab} users
-                  </span>
-                )}
-              </div>
+          <div className="status-badge">
+            <div className="status-indicator">
+              <span className="status-dot"></span>
+              Showing <strong>{filteredUsers.length}</strong> of{" "}
+              <strong>
+                {
+                  users.filter((user) =>
+                    activeTab === "archived" ? user.status === "archived" : user.status !== "archived",
+                  ).length
+                }
+              </strong>{" "}
+              {activeTab === "archived" ? "archived" : "active/inactive"} users
             </div>
           </div>
+        </div>
 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-container hidden">
           <TabsContent value="active" className="tab-content">
             <div className="table-container">
               <Table className="user-table">
@@ -370,16 +432,19 @@ export default function UserManagement({ users, loading, setUsers }) {
                   <TableRow>
                     <TableHead className="id-column text-center">ID</TableHead>
                     <TableHead className="text-center">Username</TableHead>
-                    <TableHead className="text-center">Name</TableHead>
+                    <TableHead className="text-center">First Name</TableHead>
+                    <TableHead className="text-center">Last Name</TableHead>
                     <TableHead className="email-column text-center">Email</TableHead>
+                    <TableHead className="text-center">Phone</TableHead>
                     <TableHead className="text-center">Role</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
                     <TableHead className="actions-column text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="loading-cell text-center">
+                      <TableCell colSpan={9} className="loading-cell text-center">
                         <div className="loading-indicator flex justify-center items-center">
                           <RefreshCcw className="loading-icon" />
                           Loading users...
@@ -388,21 +453,31 @@ export default function UserManagement({ users, loading, setUsers }) {
                     </TableRow>
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="empty-cell text-center">
-                        No users found matching your criteria
+                      <TableCell colSpan={9} className="empty-cell text-center">
+                        No users found
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="id-cell text-center">{user.id}</TableCell>
-                        <TableCell className="text-center">{user.username}</TableCell>
-                        <TableCell className="text-center">{capitalizeEachWord(user.name)}</TableCell>
+                        <TableCell className="text-center">{user.username || "-"}</TableCell>
+                        <TableCell className="text-center">{capitalizeEachWord(user.first_name) || "-"}</TableCell>
+                        <TableCell className="text-center">{capitalizeEachWord(user.last_name) || "-"}</TableCell>
                         <TableCell className="email-cell text-center">{user.email || "-"}</TableCell>
+                        <TableCell className="text-center">{user.phone_number || "-"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="role-badge mx-auto">
                             {getRoleDisplayName(user.role)}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div
+                            className={`status-indicator status-${user.status} ${user.status === "active" ? "pulse" : ""}`}
+                          >
+                            <span className="status-dot"></span>
+                            {getStatusDisplayName(user.status)}
+                          </div>
                         </TableCell>
                         <TableCell className="actions-cell text-center">
                           <div className="actions-container flex justify-center gap-2">
@@ -413,8 +488,26 @@ export default function UserManagement({ users, loading, setUsers }) {
                               className="action-button"
                             >
                               <Edit className="action-icon" />
-                              <span className="sr-only">Edit</span>
                             </Button>
+                            {user.status === "active" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeactivateUser(user.id)}
+                                className="action-button"
+                              >
+                                <Pause className="action-icon" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleActivateUser(user.id)}
+                                className="action-button"
+                              >
+                                <Play className="action-icon" />
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -422,7 +515,6 @@ export default function UserManagement({ users, loading, setUsers }) {
                               className="action-button"
                             >
                               <Archive className="action-icon" />
-                              <span className="sr-only">Archive</span>
                             </Button>
                           </div>
                         </TableCell>
@@ -441,8 +533,10 @@ export default function UserManagement({ users, loading, setUsers }) {
                   <TableRow>
                     <TableHead className="id-column text-center">ID</TableHead>
                     <TableHead className="text-center">Username</TableHead>
-                    <TableHead className="text-center">Name</TableHead>
+                    <TableHead className="text-center">First Name</TableHead>
+                    <TableHead className="text-center">Last Name</TableHead>
                     <TableHead className="email-column text-center">Email</TableHead>
+                    <TableHead className="text-center">Phone</TableHead>
                     <TableHead className="text-center">Role</TableHead>
                     <TableHead className="actions-column text-center">Actions</TableHead>
                   </TableRow>
@@ -450,7 +544,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="loading-cell text-center">
+                      <TableCell colSpan={8} className="loading-cell text-center">
                         <div className="loading-indicator flex justify-center items-center">
                           <RefreshCcw className="loading-icon" />
                           Loading users...
@@ -459,7 +553,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                     </TableRow>
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="empty-cell text-center">
+                      <TableCell colSpan={8} className="empty-cell text-center">
                         No archived users found
                       </TableCell>
                     </TableRow>
@@ -467,9 +561,11 @@ export default function UserManagement({ users, loading, setUsers }) {
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="id-cell text-center">{user.id}</TableCell>
-                        <TableCell className="text-center">{user.username}</TableCell>
-                        <TableCell className="text-center">{capitalizeEachWord(user.name)}</TableCell>
+                        <TableCell className="text-center">{user.username || "-"}</TableCell>
+                        <TableCell className="text-center">{capitalizeEachWord(user.first_name) || "-"}</TableCell>
+                        <TableCell className="text-center">{capitalizeEachWord(user.last_name) || "-"}</TableCell>
                         <TableCell className="email-cell text-center">{user.email || "-"}</TableCell>
+                        <TableCell className="text-center">{user.phone_number || "-"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="role-badge mx-auto">
                             {getRoleDisplayName(user.role)}
@@ -501,73 +597,121 @@ export default function UserManagement({ users, loading, setUsers }) {
               <h2 className="modal-title">{userForm.id ? "Edit User" : "Add User"}</h2>
 
               <form onSubmit={handleUserFormSubmit} className="user-form">
-                <div className="form-group">
-                  <label htmlFor="username" className="form-label">
-                    Username:
-                  </label>
-                  <input
-                    id="username"
-                    type="text"
-                    value={userForm.username}
-                    onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
-                    placeholder="Enter username"
-                    required
-                    className="form-input"
-                  />
-                </div>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label htmlFor="username" className="form-label required">
+                      Username
+                    </label>
+                    <input
+                      id="username"
+                      type="text"
+                      value={userForm.username}
+                      onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                      placeholder="Enter username"
+                      required
+                      className="form-input"
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="name" className="form-label">
-                    Full Name:
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    value={userForm.name}
-                    onChange={(e) => setUserForm({ ...userForm, name: capitalizeEachWord(e.target.value) })}
-                    placeholder="Enter full name"
-                    required
-                    className="form-input"
-                  />
-                </div>
+                  <div className="form-group">
+                    <label htmlFor="first_name" className="form-label required">
+                      First Name
+                    </label>
+                    <input
+                      id="first_name"
+                      type="text"
+                      value={userForm.first_name}
+                      onChange={(e) => setUserForm({ ...userForm, first_name: e.target.value })}
+                      placeholder="Enter first name"
+                      required
+                      className="form-input"
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="email" className="form-label">
-                    Email (Optional):
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                    placeholder="Enter email address (optional)"
-                    className="form-input"
-                  />
-                </div>
+                  <div className="form-group">
+                    <label htmlFor="last_name" className="form-label required">
+                      Last Name
+                    </label>
+                    <input
+                      id="last_name"
+                      type="text"
+                      value={userForm.last_name}
+                      onChange={(e) => setUserForm({ ...userForm, last_name: e.target.value })}
+                      placeholder="Enter last name"
+                      required
+                      className="form-input"
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="role" className="form-label">
-                    Role:
-                  </label>
-                  <select
-                    id="role"
-                    value={userForm.role}
-                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="manager">Manager</option>
-                    <option value="delivery_driver">Delivery Driver</option>
-                    <option value="employee">Employee</option>
-                  </select>
+                  <div className="form-group">
+                    <label htmlFor="email" className="form-label">
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={userForm.email}
+                      onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                      placeholder="Enter email address"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="phone_number" className="form-label">
+                      Phone Number
+                    </label>
+                    <input
+                      id="phone_number"
+                      type="tel"
+                      value={userForm.phone_number}
+                      onChange={(e) => setUserForm({ ...userForm, phone_number: e.target.value })}
+                      placeholder="Enter phone number"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="role" className="form-label">
+                      Role
+                    </label>
+                    <select
+                      id="role"
+                      value={userForm.role}
+                      onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                      className="form-select"
+                    >
+                      <option value="manager">Manager</option>
+                      <option value="delivery_driver">Delivery Driver</option>
+                      <option value="employee">Employee</option>
+                    </select>
+                  </div>
+
+                  {userForm.id && (
+                    <div className="form-group">
+                      <label htmlFor="status" className="form-label">
+                        Status
+                      </label>
+                      <select
+                        id="status"
+                        value={userForm.status}
+                        onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
+                        className="form-select"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="save-button" disabled={isLoading}>
-                    {isLoading ? "Saving..." : userForm.id ? "Save" : "Add User"}
-                  </button>
-
                   <button type="button" onClick={handleCancel} className="cancel-button">
                     Cancel
+                  </button>
+                  <button type="submit" className={`save-button ${isLoading ? "loading" : ""}`} disabled={isLoading}>
+                    {isLoading ? "" : userForm.id ? "Save Changes" : "Add User"}
                   </button>
                 </div>
               </form>

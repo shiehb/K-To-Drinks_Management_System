@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/"
   }
 
-  // Check if user is authenticated
+  // Optimize the checkAuth function to prevent excessive API calls
   const checkAuth = async () => {
     try {
       setLoading(true)
@@ -149,6 +149,15 @@ export const AuthProvider = ({ children }) => {
 
       // Parse token data
       const { token, expires } = JSON.parse(tokenData)
+
+      // Add caching mechanism to prevent frequent checks
+      const lastChecked = localStorage.getItem("lastAuthCheck")
+      const CACHE_DURATION = 60000 // 1 minute cache
+
+      if (lastChecked && Date.now() - Number.parseInt(lastChecked) < CACHE_DURATION) {
+        setLoading(false)
+        return !!user // Return current auth state without making API calls
+      }
 
       // Check if token is expired
       if (Date.now() > expires) {
@@ -182,11 +191,15 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("token", JSON.stringify(newTokenData))
 
         // Continue with verification using new token
-        return await verifyAndGetUser(refreshResult.data.access)
+        const result = await verifyAndGetUser(refreshResult.data.access)
+        localStorage.setItem("lastAuthCheck", Date.now().toString())
+        return result
       }
 
       // Verify token and get user
-      return await verifyAndGetUser(token)
+      const result = await verifyAndGetUser(token)
+      localStorage.setItem("lastAuthCheck", Date.now().toString())
+      return result
     } catch (error) {
       console.error("Auth check error:", error)
       return false
@@ -195,9 +208,14 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Helper function to verify token and get user
+  // Optimize verifyAndGetUser to reduce API calls
   const verifyAndGetUser = async (token) => {
     try {
+      // Only verify token if we don't have a user already
+      if (user) {
+        return true
+      }
+
       // Verify token
       const verifyResult = await authService.verifyToken(token)
 

@@ -44,9 +44,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+   'corsheaders.middleware.CorsMiddleware',  # Make sure this is at the top
    'django.middleware.security.SecurityMiddleware',
    'django.contrib.sessions.middleware.SessionMiddleware',
-   'corsheaders.middleware.CorsMiddleware',  # Make sure this is before CommonMiddleware
    'django.middleware.common.CommonMiddleware',
    'django.middleware.csrf.CsrfViewMiddleware',
    'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -149,18 +149,19 @@ CORS_ALLOW_METHODS = [
    'OPTIONS',
 ]
 
-# Allow specific headers including x-csrf-token
+# Allow specific headers including content-security-policy
 CORS_ALLOW_HEADERS = [
    'accept',
    'accept-encoding',
    'authorization',
    'content-type',
+   'content-security-policy',  # Added this header to fix the CORS issue
    'dnt',
    'origin',
    'user-agent',
    'x-csrftoken',
    'x-requested-with',
-   'x-csrf-token',  # Added this header specifically
+   'x-csrf-token',
    'access-control-allow-origin',
 ]
 
@@ -178,4 +179,3 @@ SIMPLE_JWT = {
    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
-

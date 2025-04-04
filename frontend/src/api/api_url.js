@@ -34,11 +34,29 @@ api.interceptors.request.use(
       config.headers["X-Requested-With"] = "XMLHttpRequest"
     }
 
-    // Add content security headers
-    config.headers["Content-Security-Policy"] = "default-src 'self'"
+    // Implement request deduplication for GET requests
+    if (config.method === "get") {
+      const requestKey = `${config.url}`
+      const currentTime = Date.now()
+      const lastRequestTime = api.requestCache?.[requestKey] || 0
 
-    // Log outgoing requests for debugging
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, config)
+      // If the same request was made in the last 2 seconds, abort this one
+      if (currentTime - lastRequestTime < 2000) {
+        const controller = new AbortController()
+        config.signal = controller.signal
+        controller.abort("Duplicate request aborted")
+      } else {
+        // Update the request cache
+        if (!api.requestCache) api.requestCache = {}
+        api.requestCache[requestKey] = currentTime
+      }
+    }
+
+    // Only log in development
+    if (process.env.NODE_ENV === "development") {
+      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, config)
+    }
+
     return config
   },
   (error) => {

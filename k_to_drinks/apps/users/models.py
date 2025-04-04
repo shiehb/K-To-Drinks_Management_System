@@ -5,26 +5,25 @@ from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
-    """Define a model manager for User model with email as the unique identifier."""
+    """Define a model manager for User model."""
 
-    def _create_user(self, email, password, **extra_fields):
-        """Create and save a User with the given email and password."""
-        if not email:
-            raise ValueError('The Email must be set')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+    def _create_user(self, username, password, **extra_fields):
+        """Create and save a User with the given username and password."""
+        if not username:
+            raise ValueError('The Username must be set')
+        user = self.model(username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, email, password=None, **extra_fields):
-        """Create and save a regular User with the given email and password."""
+    def create_user(self, username, password=None, **extra_fields):
+        """Create and save a regular User with the given username and password."""
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(username, password, **extra_fields)
 
-    def create_superuser(self, email, password, **extra_fields):
-        """Create and save a SuperUser with the given email and password."""
+    def create_superuser(self, username, password, **extra_fields):
+        """Create and save a SuperUser with the given username and password."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -35,12 +34,12 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(username, password, **extra_fields)
 
 
 class User(AbstractUser):
     """
-    Custom User model with email as the unique identifier
+    Custom User model with username as the unique identifier
     """
     ROLE_CHOICES = (
         ('manager', _('Manager')),
@@ -53,7 +52,7 @@ class User(AbstractUser):
         ('archived', _('Archived')),
     )
 
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(_('email address'), blank=True)
     first_name = models.CharField(_('first name'), max_length=150, blank=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
     phone_number = models.CharField(_('phone number'), max_length=20, blank=True)
@@ -76,7 +75,8 @@ class User(AbstractUser):
     
     objects = UserManager()
     
-    USERNAME_FIELD = 'email'
+    # Use the default USERNAME_FIELD which is 'username'
+    # USERNAME_FIELD = 'username'  # This is already the default
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
     class Meta:
@@ -84,7 +84,7 @@ class User(AbstractUser):
         verbose_name_plural = _('Users')
 
     def __str__(self):
-        return self.email
+        return self.username
 
     def get_full_name(self):
         """
@@ -98,20 +98,17 @@ class User(AbstractUser):
         return self.first_name
 
 
+# Add the UserProfile model that's missing but matches the existing database schema
 class UserProfile(models.Model):
     """
     Extended profile information for users
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
-    birth_date = models.DateField(blank=True, null=True)
+    avatar = models.ImageField(upload_to='profile_avatars/', blank=True, null=True)
+    bio = models.TextField(blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
     
-    class Meta:
-        verbose_name = _('User Profile')
-        verbose_name_plural = _('User Profiles')
-
     def __str__(self):
-        return f"Profile for {self.user.email}"
+        return f"{self.user.username}'s profile"
 

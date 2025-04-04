@@ -1,3 +1,4 @@
+/* Improved responsive header */
 .top-header {
   position: fixed;
   top: 0;
@@ -9,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   z-index: 1000;
-  padding: 0 15px;
+  padding: 0 clamp(8px, 2vw, 15px); /* Responsive padding */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -25,14 +26,14 @@
   justify-content: center;
 }
 
-/* Header controls */
+/* Header controls with improved accessibility */
 .header-controls {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-/* Sidebar toggle buttons */
+/* Sidebar toggle buttons with improved touch targets */
 .sidebar-toggle,
 .sidebar-visibility-toggle {
   background: transparent;
@@ -42,10 +43,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: clamp(6px, 1vw, 8px); /* Responsive padding */
   margin-right: 5px;
   border-radius: 50%;
   transition: background-color 0.2s ease;
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px; /* Minimum touch target size */
 }
 
 .sidebar-toggle:hover,
@@ -53,12 +56,18 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-toggle .material-icons,
-.sidebar-visibility-toggle .material-icons {
-  font-size: 24px;
+.sidebar-toggle:focus-visible,
+.sidebar-visibility-toggle:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 
-/* Company name */
+.sidebar-toggle .material-icons,
+.sidebar-visibility-toggle .material-icons {
+  font-size: clamp(20px, 2vw, 24px); /* Responsive icon size */
+}
+
+/* Company name with responsive typography */
 .company-name {
   display: flex;
   flex-direction: column;
@@ -69,27 +78,31 @@
 }
 
 .title-top {
-  font-size: 14px;
+  font-size: clamp(10px, 1.5vw, 14px); /* Responsive font size */
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: clamp(1px, 0.5vw, 2px); /* Responsive letter spacing */
 }
 
 .title-bottom {
-  font-size: 18px;
+  font-size: clamp(12px, 2vw, 18px); /* Responsive font size */
   font-weight: 800;
-  letter-spacing: 4px;
+  letter-spacing: clamp(2px, 1vw, 4px); /* Responsive letter spacing */
 }
 
-/* User name */
+/* User name with responsive typography */
 .user-name {
-  font-size: 18px;
+  font-size: clamp(14px, 2vw, 18px); /* Responsive font size */
   color: var(--stext-color);
-  letter-spacing: 2px;
+  letter-spacing: clamp(1px, 0.5vw, 2px); /* Responsive letter spacing */
   font-weight: 600;
   text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-/* Dark mode toggle */
+/* Dark mode toggle with improved accessibility */
 .dark-mode-toggle {
   background: transparent;
   border: none;
@@ -98,10 +111,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: clamp(6px, 1vw, 8px); /* Responsive padding */
   margin-right: 15px;
   border-radius: 50%;
   transition: all 0.3s ease;
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px; /* Minimum touch target size */
 }
 
 .dark-mode-toggle:hover {
@@ -109,11 +124,16 @@
   transform: rotate(15deg);
 }
 
-.dark-mode-toggle .material-icons {
-  font-size: 24px;
+.dark-mode-toggle:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 
-/* Menu icon */
+.dark-mode-toggle .material-icons {
+  font-size: clamp(20px, 2vw, 24px); /* Responsive icon size */
+}
+
+/* Menu icon with improved accessibility */
 .menu-icon {
   color: var(--stext-color);
   display: flex;
@@ -121,17 +141,24 @@
   justify-content: center;
   border-radius: 50%;
   padding: 3px;
-  margin-right: 20px;
+  margin-right: clamp(10px, 2vw, 20px); /* Responsive margin */
   cursor: pointer;
   transition: background-color 0.2s ease;
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px; /* Minimum touch target size */
 }
 
 .menu-icon:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.menu-icon:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
 .menu-icon .material-icons {
-  font-size: 35px;
+  font-size: clamp(24px, 3vw, 35px); /* Responsive icon size */
 }
 
 /* Dropdown menu */
@@ -221,38 +248,8 @@
   color: #f44336 !important;
 }
 
-/* Responsive adjustments */
-@media (max-width: 992px) {
-  .title-top {
-    font-size: 12px;
-    letter-spacing: 1px;
-  }
-
-  .title-bottom {
-    font-size: 16px;
-    letter-spacing: 3px;
-  }
-}
-
+/* Enhanced responsive adjustments */
 @media (max-width: 768px) {
-  .top-header {
-    padding: 0 10px;
-  }
-
-  .user-name {
-    font-size: 16px;
-    letter-spacing: 1px;
-  }
-
-  .sidebar-toggle .material-icons,
-  .sidebar-visibility-toggle .material-icons,
-  .menu-icon .material-icons,
-  .dark-mode-toggle .material-icons {
-    font-size: 22px;
-  }
-}
-
-@media (max-width: 576px) {
   .user-name span {
     display: none;
   }
@@ -261,14 +258,11 @@
     max-width: 120px;
   }
 
-  .title-top {
-    font-size: 10px;
-    letter-spacing: 1px;
-  }
-
-  .title-bottom {
-    font-size: 14px;
-    letter-spacing: 2px;
+  .sidebar-toggle .material-icons,
+  .sidebar-visibility-toggle .material-icons,
+  .menu-icon .material-icons,
+  .dark-mode-toggle .material-icons {
+    font-size: 22px;
   }
 }
 
@@ -297,6 +291,10 @@
 
   .user-name {
     font-size: 14px;
+  }
+
+  .dark-mode-toggle {
+    margin-right: 8px;
   }
 }
 

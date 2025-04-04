@@ -18,9 +18,8 @@ import UserPage from "./pages/UserPage"
 import { toast } from "react-toastify"
 import api from "./api/api_url"
 import "./index.css"
-import "./css/pages.css" // Ensure pages.css is imported
+import "./css/pages.css"
 
-// Global toast configuration
 const toastConfig = {
   position: "top-right",
   autoClose: 3000,
@@ -36,7 +35,6 @@ const toastConfig = {
   },
 }
 
-// Enhanced PrivateRoute with token verification
 const PrivateRoute = ({ element }) => {
   const { user, checkAuth } = useAuth()
   const [isAuthenticating, setIsAuthenticating] = useState(true)
@@ -70,7 +68,6 @@ const PrivateRoute = ({ element }) => {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
 
-  // Redirect to login if user is null
   if (!user) {
     return <Navigate to="/" replace />
   }
@@ -83,7 +80,6 @@ function App() {
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
 
-  // Enhanced fetch with token refresh handling
   useEffect(() => {
     let isMounted = true
 
@@ -96,14 +92,47 @@ function App() {
       }
 
       try {
-        if (isMounted) {
-          setLoading(true)
-        }
-        const response = await api.get("/users/")
-        if (isMounted) {
-          setUsers(response.data)
-          console.log("Users fetched successfully:", response.data.length)
-        }
+        const DEBOUNCE_DELAY = 300
+        let timeoutId
+
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(async () => {
+          if (isMounted) {
+            setLoading(true)
+          }
+
+          const cachedUsers = sessionStorage.getItem("cachedUsers")
+          const cacheTimestamp = sessionStorage.getItem("usersCacheTimestamp")
+          const CACHE_DURATION = 60000
+
+          if (cachedUsers && cacheTimestamp && Date.now() - Number.parseInt(cacheTimestamp) < CACHE_DURATION) {
+            if (isMounted) {
+              setUsers(JSON.parse(cachedUsers))
+              setLoading(false)
+            }
+            return
+          }
+
+          try {
+            const response = await api.get("/users/")
+            if (isMounted) {
+              setUsers(response.data)
+              console.log("Users fetched successfully:", response.data.length)
+              sessionStorage.setItem("cachedUsers", JSON.stringify(response.data))
+              sessionStorage.setItem("usersCacheTimestamp", Date.now().toString())
+            }
+          } catch (error) {
+            console.error("Failed to fetch users:", error)
+            if (isMounted) {
+              const errorMessage = error.response?.data?.message || error.message || "Failed to fetch users"
+              toast.error(errorMessage, toastConfig)
+            }
+          } finally {
+            if (isMounted) {
+              setLoading(false)
+            }
+          }
+        }, DEBOUNCE_DELAY)
       } catch (error) {
         console.error("Failed to fetch users:", error)
         if (isMounted) {
@@ -130,12 +159,11 @@ function App() {
     <AppProvider>
       <Router>
         <ToastContainer {...toastConfig} />
-
         <Routes>
           {/* Public Route */}
           <Route path="/" element={<LoginPage />} />
 
-          {/* Protected Routes */}
+          {/* Protected Routes with Layout */}
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<PrivateRoute element={<DashboardPage />} />} />
             <Route path="/localstore" element={<PrivateRoute element={<LocalStorePage />} />} />
@@ -145,7 +173,17 @@ function App() {
             <Route path="/delivery" element={<PrivateRoute element={<DeliveryPage />} />} />
             <Route
               path="/user"
-              element={<PrivateRoute element={<UserPage users={users} loading={loading} setUsers={setUsers} />} />}
+              element={
+                <PrivateRoute 
+                  element={
+                    <UserPage 
+                      users={users} 
+                      loading={loading} 
+                      setUsers={setUsers} 
+                    />
+                  } 
+                />
+              }
             />
           </Route>
 
@@ -158,4 +196,3 @@ function App() {
 }
 
 export default App
-

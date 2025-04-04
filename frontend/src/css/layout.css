@@ -15,19 +15,19 @@
   min-height: calc(100vh - var(--header-height));
 }
 
-/* Main content area */
+/* Main content area with improved responsiveness */
 .main-content {
   flex: 1;
   background-color: var(--background-color);
   min-height: calc(100vh - var(--header-height));
-  padding: 2px;
+  padding: clamp(0.5rem, 2vw, 2rem); /* Responsive padding */
   transition: all 0.3s ease;
   margin-left: var(--sidebar-width);
   width: calc(100% - var(--sidebar-width));
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  z-index: 1; /* Ensure content is above other elements */
+  z-index: 1;
   position: relative;
 }
 
@@ -41,7 +41,7 @@
   width: 100%;
 }
 
-/* Ensure page content is visible */
+/* Ensure page content is visible and responsive */
 .page-wrapper {
   width: 100%;
   height: 100%;
@@ -61,53 +61,84 @@
   overflow-y: auto;
   background-color: var(--background-color);
   position: relative;
-  z-index: 5; /* Higher z-index to ensure visibility */
+  z-index: 5;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .main-content {
-    padding: 15px;
-  }
-}
-
-@media (max-width: 992px) {
-  .main-content {
-    padding: 12px;
-  }
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    width: 100%;
-    padding: 15px;
-  }
-
-  .main-content.expanded {
-    margin-left: 0;
-  }
-}
-
-@media (max-width: 576px) {
-  .main-content {
-    padding: 10px;
-  }
-}
-
-/* CSS Variables for consistent sizing */
+/* Improved responsive CSS variables */
 :root {
   --header-height: 70px;
   --sidebar-width: 250px;
   --sidebar-collapsed-width: 70px;
+
+  /* Add responsive variables */
+  --content-padding: 2rem;
+  --card-border-radius: 8px;
+  --mobile-breakpoint: 768px;
+  --tablet-breakpoint: 992px;
+  --desktop-breakpoint: 1200px;
 }
 
-/* Logout confirmation styling */
+/* Enhanced responsive adjustments */
+@media (max-width: 1200px) {
+  :root {
+    --content-padding: 1.5rem;
+  }
+
+  .main-content {
+    padding: var(--content-padding);
+  }
+}
+
+@media (max-width: 992px) {
+  :root {
+    --content-padding: 1rem;
+    --sidebar-width: 220px;
+  }
+
+  .main-content {
+    padding: var(--content-padding);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --header-height: 60px;
+    --sidebar-width: 0;
+    --content-padding: 0.75rem;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: var(--content-padding);
+  }
+
+  .main-content.expanded {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  :root {
+    --header-height: 50px;
+    --content-padding: 0.5rem;
+  }
+
+  .main-content {
+    padding: var(--content-padding);
+  }
+}
+
+/* Improved logout confirmation styling */
 .logout-confirmation {
   border: 1px solid var(--border-color);
   padding: 15px;
-  border-radius: 8px;
+  border-radius: var(--card-border-radius);
   background-color: var(--sbackground-color);
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
 .logout-confirmation p {
@@ -116,6 +147,7 @@
   text-align: center;
   margin: 10px 0;
   font-weight: 500;
+  color: var(--text-color);
 }
 
 .logout-buttons {
@@ -153,32 +185,29 @@
   background-color: #d32f2f;
 }
 
-/* Additional responsive adjustments */
-@media (max-width: 480px) {
-  :root {
-    --header-height: 60px;
-  }
-
-  .btn-yes,
-  .btn-no {
-    padding: 6px 20px;
-    font-size: 14px;
-  }
+/* Focus styles for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
-@media (max-width: 360px) {
-  :root {
-    --header-height: 50px;
-  }
+/* Skip to content link for keyboard users */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-color);
+  color: white;
+  padding: 8px;
+  z-index: 9999;
+  transition: top 0.3s;
+}
 
-  .logout-confirmation {
-    padding: 10px;
-  }
-
-  .btn-yes,
-  .btn-no {
-    padding: 5px 15px;
-    font-size: 12px;
-  }
+.skip-to-content:focus {
+  top: 0;
 }
 

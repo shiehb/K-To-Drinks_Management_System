@@ -88,6 +88,7 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
               className="sidebar-toggle"
               onClick={toggleSidebar}
               aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              aria-expanded={sidebarOpen}
               title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
               <span className="material-icons" aria-hidden="true">
@@ -114,6 +115,7 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
             className="dark-mode-toggle"
             onClick={toggleDarkMode}
             aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={darkMode}
             title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
             <span className="material-icons" aria-hidden="true">
