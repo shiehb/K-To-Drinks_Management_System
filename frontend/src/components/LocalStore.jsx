@@ -56,16 +56,19 @@ export default function LocalStore() {
   const [showRouteView, setShowRouteView] = useState(false)
   const tableRef = useRef(null)
   const [showTraffic, setShowTraffic] = useState(false)
+  
 
   // Fetch stores from API
   const fetchStores = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await api.get(`/stores/?archived=${showArchived}`)
-      setData(response.data)
+      // Check if response.data is an object with stores property
+      setData(Array.isArray(response.data) ? response.data : response.data.stores || [])
     } catch (err) {
       console.error("Fetch error:", err)
       toast.error(`Failed to load stores: ${err.response?.data?.message || err.message}`, toastConfig)
+      setData([]) // Ensure data is always an array
     } finally {
       setIsLoading(false)
     }
@@ -104,17 +107,22 @@ export default function LocalStore() {
     initUserLocation()
   }, [])
 
-  // Filter and sort data
-  useEffect(() => {
-    const filtered = data.filter(
-      (item) =>
-        item.day === selectedDay &&
-        (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.owner_name.toLowerCase().includes(searchQuery.toLowerCase())),
-    )
-    setRouteOrder(filtered.map((_, index) => index))
-  }, [selectedDay, searchQuery, data])
+ // Filter and sort data
+useEffect(() => {
+  const filtered = Array.isArray(data) ? data.filter((item) => {
+      return (
+          item.day === selectedDay &&
+          (
+              item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.owner_name.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      );
+  }) : [];
+
+  setRouteOrder(filtered.map((_, index) => index));
+}, [selectedDay, searchQuery, data]);
+
 
   // Debounced search function
   const debouncedSearch = useMemo(() => {
@@ -347,18 +355,18 @@ export default function LocalStore() {
   }
 
   // Prepare route destinations for the map
-  const filteredDataByDay = useMemo(() => data.filter((item) => item.day === selectedDay), [data, selectedDay])
+const filteredDataByDay = useMemo(() => 
+  Array.isArray(data) ? data.filter((item) => item.day === selectedDay) : []
+, [data, selectedDay])
 
-  const filteredDataBySearch = useMemo(
-    () =>
-      filteredDataByDay.filter(
-        (item) =>
-          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.owner_name.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    [filteredDataByDay, searchQuery],
-  )
+const filteredDataBySearch = useMemo(() =>
+  Array.isArray(filteredDataByDay) ? filteredDataByDay.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.owner_name.toLowerCase().includes(searchQuery.toLowerCase())
+  ) : []
+, [filteredDataByDay, searchQuery])
 
   const routeDestinations = useMemo(() => {
     if (!showRouteView || !selectedItem) return []

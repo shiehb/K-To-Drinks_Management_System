@@ -1,22 +1,7 @@
 .navigation {
-  background-color: var(--sbackground-color);
-}
-
-.nav-item {
-  color: var(--text-primary);
-}
-
-.nav-dropdown {
-  background-color: var(--card-background);
-}
-
-.nav-dropdown-item {
-  color: var(--text-primary);
-}
-.navigation {
   width: var(--sidebar-width);
   height: 100vh;
-  background: var(--sbackground-color);
+  background: var(--sidebar);
   position: fixed;
   top: 0;
   left: 0;
@@ -26,6 +11,7 @@
   box-shadow: 1px 0 5px rgba(0, 0, 0, 0.05);
   overflow-y: auto;
   overflow-x: hidden;
+  border-right: 1px solid var(--sidebar-border);
 }
 
 .navigation.closed {
@@ -47,7 +33,7 @@
   align-items: center;
   padding: 12px 20px;
   margin: 5px 10px;
-  color: var(--text-color);
+  color: var(--sidebar-foreground);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 1px;
@@ -61,13 +47,13 @@
 }
 
 .nav-item:hover {
-  color: var(--text-color);
-  background: var(--primary-hover);
+  color: var(--sidebar-accent-foreground);
+  background: var(--sidebar-accent);
 }
 
 .nav-item.active {
-  color: var(--stext-color);
-  background-color: var(--primary-color);
+  color: var(--sidebar-primary-foreground);
+  background-color: var(--sidebar-primary);
 }
 
 .nav-icon {
@@ -113,7 +99,7 @@
   left: var(--sidebar-width);
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   z-index: -1;
 }
 
@@ -136,12 +122,13 @@
 }
 
 .nav-dropdown {
-  background-color: var(--background-color);
+  background-color: var(--sidebar-accent);
   margin: 0 10px;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   animation: dropdownFadeIn 0.2s ease;
+  border: 1px solid var(--sidebar-border);
 }
 
 @keyframes dropdownFadeIn {
@@ -159,7 +146,7 @@
   display: flex;
   align-items: center;
   padding: 10px 15px 10px 40px;
-  color: var(--text-color);
+  color: var(--sidebar-accent-foreground);
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
@@ -167,12 +154,13 @@
 }
 
 .nav-dropdown-item:hover {
-  background-color: var(--primary-hover);
+  background-color: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
 }
 
 .nav-dropdown-item.active {
-  background-color: var(--primary-color);
-  color: var(--stext-color);
+  background-color: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
 }
 
 .nav-dropdown-item .nav-icon {
@@ -263,4 +251,3 @@
     margin-right: 8px;
   }
 }
-

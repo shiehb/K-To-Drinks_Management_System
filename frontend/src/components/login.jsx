@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext"
 import "../css/login.css"
 import Loader from "./styled-components/Loader"
 import { toast } from "react-toastify"
-import { Eye, EyeOff, User, Lock, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, User, Lock, AlertCircle, Sun, Moon } from "lucide-react"
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ username: "", password: "" })
@@ -121,7 +121,7 @@ export default function Login() {
   }
 
   return (
-    <>
+    <div className={`login-wrapper ${darkMode ? 'dark' : ''}`}>
       {/* Full-screen loader */}
       {loading && (
         <div className="loader-overlay" role="alert" aria-live="assertive" aria-busy="true">
@@ -130,122 +130,129 @@ export default function Login() {
         </div>
       )}
 
-      {/* Login Container */}
-      <div className="login-wrapper">
-        {/* Dark mode toggle with improved accessibility */}
-        <button
-          className="theme-toggle-btn"
-          onClick={toggleDarkMode}
-          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          aria-pressed={darkMode}
-        >
-          <i className={`fas fa-${darkMode ? "sun" : "moon"}`} aria-hidden="true"></i>
-        </button>
+      {/* Dark mode toggle with improved accessibility */}
+      <button
+        className="theme-toggle-btn"
+        onClick={toggleDarkMode}
+        aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+        aria-pressed={darkMode}
+      >
+        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
 
-        <div className="login-container">
-          {/* Left Section */}
-          <div className="login-left" aria-hidden="true">
-            {" "}
-            {/* Mark as decorative for screen readers */}
-            <div className="login-image">
-              <div className="overlay"></div>
-              <div className="login-title">
-                <div className="login-title-top">K-TO-DRINKS</div>
-                <div className="login-title-bottom">TRADING</div>
-              </div>
+      <div className="login-container">
+        {/* Left Section */}
+        <div className="login-left" aria-hidden="true">
+          <div className="login-image">
+            <div className="overlay"></div>
+            <div className="login-title">
+              <div className="login-title-top">K-TO-DRINKS</div>
+              <div className="login-title-bottom">TRADING</div>
             </div>
           </div>
+        </div>
 
-          {/* Right Section */}
-          <div className="login-right">
-            {/* Login Form with improved accessibility */}
-            <form className="login-form" onSubmit={handleSubmit} aria-labelledby="login-heading">
-              {/* Welcome Message */}
-              <h1 id="login-heading">Welcome Back</h1>
-              <p>Login to your account to continue</p>
+        {/* Right Section */}
+        <div className="login-right">
+          {/* Login Form with improved accessibility */}
+          <form className="login-form" onSubmit={handleSubmit} aria-labelledby="login-heading">
+            {/* Welcome Message */}
+            <h1 id="login-heading">Welcome Back</h1>
+            <p>Login to your account to continue</p>
 
-              {/* Username field */}
-              <div className="input-group">
-                <label htmlFor="username" className="labels" id="username-label">
-                  Username
-                </label>
-                <div className="input-with-icon">
-                  <User className="input-icon" aria-hidden="true" />
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={credentials.username}
-                    onChange={handleChange}
-                    className={`inputs ${errors.username ? "input-error" : ""}`}
-                    placeholder="Enter your username"
-                    required
-                    autoComplete="username"
-                    ref={usernameRef}
-                    onKeyDown={handleKeyDown}
-                    aria-invalid={errors.username ? "true" : "false"}
-                    aria-describedby={errors.username ? "username-error" : undefined}
-                    aria-labelledby="username-label"
-                  />
-                </div>
-                {errors.username && (
-                  <div className="error-message-inline" id="username-error" role="alert">
-                    <AlertCircle size={16} aria-hidden="true" />
-                    <span>{errors.username}</span>
-                  </div>
-                )}
+            {/* Username field */}
+            <div className="input-group">
+              <label htmlFor="username" className="labels" id="username-label">
+                Username
+              </label>
+              <div className="input-with-icon">
+                <User className="input-icon" aria-hidden="true" />
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={credentials.username}
+                  onChange={handleChange}
+                  className={`inputs ${errors.username ? "input-error" : ""}`}
+                  placeholder="Enter your username"
+                  required
+                  autoComplete="username"
+                  ref={usernameRef}
+                  onKeyDown={handleKeyDown}
+                  aria-invalid={errors.username ? "true" : "false"}
+                  aria-describedby={errors.username ? "username-error" : undefined}
+                  aria-labelledby="username-label"
+                />
               </div>
-
-              {/* Password field with improved accessibility */}
-              <div className="input-group">
-                <label htmlFor="password" className="labels" id="password-label">
-                  Password
-                </label>
-                <div className="input-with-icon">
-                  <Lock className="input-icon" aria-hidden="true" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    name="password"
-                    value={credentials.password}
-                    onChange={handleChange}
-                    className={`inputs ${errors.password ? "input-error" : ""}`}
-                    placeholder="Enter your password"
-                    required
-                    autoComplete="current-password"
-                    ref={passwordRef}
-                    onKeyDown={handleKeyDown}
-                    aria-invalid={errors.password ? "true" : "false"}
-                    aria-describedby={errors.password ? "password-error" : undefined}
-                    aria-labelledby="password-label"
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle-icon"
-                    onClick={toggleShowPassword}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
-                  </button>
+              {errors.username && (
+                <div className="error-message-inline" id="username-error" role="alert">
+                  <AlertCircle size={16} aria-hidden="true" />
+                  <span>{errors.username}</span>
                 </div>
-                {errors.password && (
-                  <div className="error-message-inline" id="password-error" role="alert">
-                    <AlertCircle size={16} aria-hidden="true" />
-                    <span>{errors.password}</span>
-                  </div>
-                )}
-              </div>
+              )}
+            </div>
 
-              {/* Login button with improved accessibility */}
-              <button type="submit" className="button" disabled={loading} aria-busy={loading} aria-disabled={loading}>
-                {loading ? "LOGGING IN..." : "LOGIN"}
-              </button>
-            </form>
-          </div>
+            {/* Password field with improved accessibility */}
+            <div className="input-group">
+              <label htmlFor="password" className="labels" id="password-label">
+                Password
+              </label>
+              <div className="input-with-icon">
+                <Lock className="input-icon" aria-hidden="true" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={credentials.password}
+                  onChange={handleChange}
+                  className={`inputs ${errors.password ? "input-error" : ""}`}
+                  placeholder="Enter your password"
+                  required
+                  autoComplete="current-password"
+                  ref={passwordRef}
+                  onKeyDown={handleKeyDown}
+                  aria-invalid={errors.password ? "true" : "false"}
+                  aria-describedby={errors.password ? "password-error" : undefined}
+                  aria-labelledby="password-label"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-icon"
+                  onClick={toggleShowPassword}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
+                </button>
+              </div>
+              {errors.password && (
+                <div className="error-message-inline" id="password-error" role="alert">
+                  <AlertCircle size={16} aria-hidden="true" />
+                  <span>{errors.password}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Login button with improved accessibility */}
+            <button 
+              type="submit" 
+              className="button" 
+              disabled={loading} 
+              aria-busy={loading} 
+              aria-disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="sr-only">Loading...</span>
+                  <span aria-hidden="true">LOGGING IN...</span>
+                </>
+              ) : (
+                "LOGIN"
+              )}
+            </button>
+          </form>
         </div>
       </div>
-    </>
+    </div>
   )
 }
-
