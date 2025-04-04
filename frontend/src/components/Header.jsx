@@ -19,10 +19,14 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
   const lastName = user?.lastName || ""
   const displayName = firstName && lastName ? `${firstName} ${lastName}` : userName
 
-  // Add a useEffect to log user information for debugging
+  // Apply dark mode class to body when darkMode changes
   useEffect(() => {
-    // Removed console.log for production
-  }, [user])
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [darkMode])
 
   const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev)
@@ -81,7 +85,7 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
         Skip to content
       </a>
 
-      <header className="top-header" role="banner">
+      <header className={`top-header ${darkMode ? 'dark' : ''}`} role="banner">
         <div className="header-left">
           <div className="header-controls">
             <button
@@ -148,7 +152,7 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
 
       {isMenuOpen && (
         <div
-          className="menu-dropdown"
+          className={`menu-dropdown ${darkMode ? 'dark' : ''}`}
           onMouseEnter={() => setMenuHovered(true)}
           onMouseLeave={() => setMenuHovered(false)}
           role="menu"
@@ -200,4 +204,3 @@ export default function Header({ toggleSidebar, sidebarOpen, toggleSidebarVisibi
     </>
   )
 }
-

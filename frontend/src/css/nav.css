@@ -1,4 +1,19 @@
 .navigation {
+  background-color: var(--sbackground-color);
+}
+
+.nav-item {
+  color: var(--text-primary);
+}
+
+.nav-dropdown {
+  background-color: var(--card-background);
+}
+
+.nav-dropdown-item {
+  color: var(--text-primary);
+}
+.navigation {
   width: var(--sidebar-width);
   height: 100vh;
   background: var(--sbackground-color);

@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef } from "react"
 import { toast } from "react-toastify"
 import api from "../api/api_url"
@@ -419,7 +417,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                   ).length
                 }
               </strong>{" "}
-              {activeTab === "archived" ? "archived" : "active/inactive"} users
+              {activeTab}
             </div>
           </div>
         </div>
