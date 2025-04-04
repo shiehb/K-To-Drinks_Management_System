@@ -29,8 +29,10 @@ INSTALLED_APPS = [
    # Third-party apps
    'rest_framework',
    'corsheaders',
+   'django_filters',
    'rest_framework_simplejwt',
    'drf_yasg',
+   
    
    # Project apps
    'apps.base',
@@ -125,6 +127,9 @@ REST_FRAMEWORK = {
    'DEFAULT_PERMISSION_CLASSES': (
        'rest_framework.permissions.IsAuthenticated',
    ),
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
 }
 
 # CORS settings - Updated for proper configuration
@@ -137,6 +142,7 @@ CORS_ALLOWED_ORIGINS = [
    "http://127.0.0.1:3000",
    "http://localhost:5173",  # Vite default port
    "http://127.0.0.1:5173",
+   "https://k-to-drinks.netlify.app"
 ]
 
 # Allow all methods
