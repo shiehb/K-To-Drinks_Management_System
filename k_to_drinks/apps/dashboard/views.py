@@ -1,164 +1,204 @@
-# apps/dashboard/views.py
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .serializers import DashboardSummarySerializer
-from django.db.models import Sum, Count, Case, When, IntegerField, F
+from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
 from apps.orders.models import Order
 from apps.deliveries.models import Delivery
 from apps.products.models import Product
-from apps.inventory.models import Inventory
+from apps.inventory.models import InventoryTransaction
+from .models import DashboardStat, RecentActivity
+from django.db.models import F
 
-class DashboardViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+
+class DashboardSummaryView(generics.GenericAPIView):
+    """
+    API view to get dashboard summary data
+    """
+    permission_classes = [permissions.IsAuthenticated]
     
-    @action(detail=False, methods=['get'])
-    def summary(self, request):
-        """Get dashboard summary data."""
-        serializer = DashboardSummarySerializer({})
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def sales(self, request):
-        """Get sales data for charts."""
-        # Get date range from query params
-        period = request.query_params.get('period', 'month')
-        
-        # Get current date
+    def get(self, request):
+        # Get current date and time
         now = timezone.now()
+        today = now.date()
         
-        # Calculate date range based on period
-        if period == 'week':
-            # Last 7 days
-            start_date = now - timedelta(days=7)
-            date_format = '%Y-%m-%d'
-            group_by = 'day'
-        elif period == 'month':
-            # Last 30 days
-            start_date = now - timedelta(days=30)
-            date_format = '%Y-%m-%d'
-            group_by = 'day'
-        elif period == 'year':
-            # Last 12 months
-            start_date = now - timedelta(days=365)
-            date_format = '%Y-%m'
-            group_by = 'month'
-        else:
-            return Response(
-                {'detail': 'Invalid period. Use week, month, or year.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Get stats from the database if available
+        stats = DashboardStat.objects.filter(is_active=True)
         
-        # Query sales data
-        if group_by == 'day':
-            sales_data = Order.objects.filter(
-                created_at__gte=start_date
-            ).extra(
-                select={'date': f"strftime('{date_format}', created_at)"}
-            ).values('date').annotate(
-                total=Sum(F('items__quantity') * F('items__unit_price'))
-            ).order_by('date')
-        else:
-            sales_data = Order.objects.filter(
-                created_at__gte=start_date
-            ).extra(
-                select={'date': f"strftime('{date_format}', created_at)"}
-            ).values('date').annotate(
-                total=Sum(F('items__quantity') * F('items__unit_price'))
-            ).order_by('date')
-        
-        # Format response
-        result = {
-            'period': period,
-            'data': list(sales_data)
-        }
-        
-        return Response(result)
-    
-    @action(detail=False, methods=['get'])
-    def inventory(self, request):
-        """Get inventory data for charts."""
-        # Get low stock items
-        low_stock_items = Inventory.objects.filter(
-            current_stock__lte=F('product__reorder_level')
-        ).select_related('product').order_by('current_stock')[:10]
-        
-        # Format response
-        result = {
-            'low_stock_items': [
-                {
-                    'id': item.product.id,
-                    'name': item.product.name,
-                    'size': item.product.size,
-                    'current_stock': item.current_stock,
-                    'reorder_level': item.product.reorder_level
+        # Calculate summary data if no stats are available
+        if not stats.exists():
+            # Orders summary
+            today_orders = Order.objects.filter(created_at__date=today).count()
+            yesterday_orders = Order.objects.filter(created_at__date=today - timedelta(days=1)).count()
+            
+            # Deliveries summary
+            today_deliveries = Delivery.objects.filter(delivery_date=today).count()
+            pending_deliveries = Delivery.objects.filter(status='pending').count()
+            
+            # Products summary
+            low_stock_products = Product.objects.filter(stock_quantity__lte=F('reorder_level')).count()
+            
+            # Sales summary
+            today_sales = Order.objects.filter(created_at__date=today).aggregate(total=Sum('total_amount'))['total'] or 0
+            yesterday_sales = Order.objects.filter(created_at__date=today - timedelta(days=1)).aggregate(total=Sum('total_amount'))['total'] or 0
+            
+            summary_data = {
+                'orders': {
+                    'today': today_orders,
+                    'yesterday': yesterday_orders,
+                    'percentage_change': self._calculate_percentage_change(today_orders, yesterday_orders),
+                },
+                'deliveries': {
+                    'today': today_deliveries,
+                    'pending': pending_deliveries,
+                },
+                'products': {
+                    'low_stock': low_stock_products,
+                },
+                'sales': {
+                    'today': today_sales,
+                    'yesterday': yesterday_sales,
+                    'percentage_change': self._calculate_percentage_change(today_sales, yesterday_sales),
                 }
-                for item in low_stock_items
-            ]
-        }
+            }
+        else:
+            # Use pre-calculated stats
+            summary_data = {
+                'orders': {},
+                'deliveries': {},
+                'products': {},
+                'sales': {},
+            }
+            
+            for stat in stats:
+                if stat.stat_type == 'orders':
+                    summary_data['orders'][stat.period] = stat.value
+                elif stat.stat_type == 'deliveries':
+                    summary_data['deliveries'][stat.period] = stat.value
+                elif stat.stat_type == 'products':
+                    summary_data['products'][stat.period] = stat.value
+                elif stat.stat_type == 'sales':
+                    summary_data['sales'][stat.period] = stat.value
         
-        return Response(result)
+        # Get recent activities
+        recent_activities = RecentActivity.objects.all()[:10]
+        activities_data = [
+            {
+                'id': activity.id,
+                'type': activity.activity_type,
+                'title': activity.title,
+                'description': activity.description,
+                'reference_id': activity.reference_id,
+                'user': activity.user.get_full_name() if activity.user else None,
+                'created_at': activity.created,
+            }
+            for activity in recent_activities
+        ]
+        
+        return Response({
+            'summary': summary_data,
+            'recent_activities': activities_data,
+        })
     
-    @action(detail=False, methods=['get'])
-    def deliveries(self, request):
-        """Get delivery data for charts."""
-        # Get date range from query params
-        period = request.query_params.get('period', 'month')
+    def _calculate_percentage_change(self, current, previous):
+        """Calculate percentage change between two values"""
+        if previous == 0:
+            return 0
+        return ((current - previous) / previous) * 100
+
+
+class SalesDataView(generics.GenericAPIView):
+    """
+    API view to get sales data for charts
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        period = request.query_params.get('period', 'week')
         
-        # Get current date
+        if period == 'week':
+            return self._get_weekly_data()
+        elif period == 'month':
+            return self._get_monthly_data()
+        elif period == 'year':
+            return self._get_yearly_data()
+        else:
+            return Response({'error': 'Invalid period'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def _get_weekly_data(self):
+        """Get sales data for the past week"""
+        now = timezone.now()
+        start_date = now - timedelta(days=7)
+        
+        # Get daily sales for the past week
+        sales_data = []
+        for i in range(7):
+            date = start_date + timedelta(days=i)
+            sales = Order.objects.filter(created_at__date=date.date()).aggregate(total=Sum('total_amount'))['total'] or 0
+            sales_data.append({
+                'date': date.date().strftime('%Y-%m-%d'),
+                'sales': sales,
+            })
+        
+        return Response({
+            'period': 'week',
+            'data': sales_data,
+        })
+    
+    def _get_monthly_data(self):
+        """Get sales data for the past month"""
+        now = timezone.now()
+        start_date = now - timedelta(days=30)
+        
+        # Group sales by day for the past month
+        sales_data = []
+        for i in range(30):
+            date = start_date + timedelta(days=i)
+            sales = Order.objects.filter(created_at__date=date.date()).aggregate(total=Sum('total_amount'))['total'] or 0
+            sales_data.append({
+                'date': date.date().strftime('%Y-%m-%d'),
+                'sales': sales,
+            })
+        
+        return Response({
+            'period': 'month',
+            'data': sales_data,
+        })
+    
+    def _get_yearly_data(self):
+        """Get sales data for the past year"""
         now = timezone.now()
         
-        # Calculate date range based on period
-        if period == 'week':
-            # Last 7 days
-            start_date = now - timedelta(days=7)
-            date_format = '%Y-%m-%d'
-            group_by = 'day'
-        elif period == 'month':
-            # Last 30 days
-            start_date = now - timedelta(days=30)
-            date_format = '%Y-%m-%d'
-            group_by = 'day'
-        elif period == 'year':
-            # Last 12 months
-            start_date = now - timedelta(days=365)
-            date_format = '%Y-%m'
-            group_by = 'month'
-        else:
-            return Response(
-                {'detail': 'Invalid period. Use week, month, or year.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Group sales by month for the past year
+        sales_data = []
+        for i in range(12):
+            month = now.month - i
+            year = now.year
+            if month <= 0:
+                month += 12
+                year -= 1
+            
+            start_date = timezone.datetime(year, month, 1)
+            if month == 12:
+                end_date = timezone.datetime(year + 1, 1, 1) - timedelta(days=1)
+            else:
+                end_date = timezone.datetime(year, month + 1, 1) - timedelta(days=1)
+            
+            sales = Order.objects.filter(
+                created_at__date__gte=start_date.date(),
+                created_at__date__lte=end_date.date()
+            ).aggregate(total=Sum('total_amount'))['total'] or 0
+            
+            sales_data.append({
+                'month': start_date.strftime('%Y-%m'),
+                'sales': sales,
+            })
         
-        # Query delivery data
-        if group_by == 'day':
-            delivery_data = Delivery.objects.filter(
-                delivery_date__gte=start_date
-            ).extra(
-                select={'date': f"strftime('{date_format}', delivery_date)"}
-            ).values('date').annotate(
-                total=Count('id'),
-                delivered=Count(Case(When(status='delivered', then=1), output_field=IntegerField())),
-                cancelled=Count(Case(When(status='cancelled', then=1), output_field=IntegerField()))
-            ).order_by('date')
-        else:
-            delivery_data = Delivery.objects.filter(
-                delivery_date__gte=start_date
-            ).extra(
-                select={'date': f"strftime('{date_format}', delivery_date)"}
-            ).values('date').annotate(
-                total=Count('id'),
-                delivered=Count(Case(When(status='delivered', then=1), output_field=IntegerField())),
-                cancelled=Count(Case(When(status='cancelled', then=1), output_field=IntegerField()))
-            ).order_by('date')
+        # Reverse to get chronological order
+        sales_data.reverse()
         
-        # Format response
-        result = {
-            'period': period,
-            'data': list(delivery_data)
-        }
-        
-        return Response(result)
+        return Response({
+            'period': 'year',
+            'data': sales_data,
+        })
+

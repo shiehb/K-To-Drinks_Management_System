@@ -2,14 +2,15 @@ import React from "react"
 import ReactDOM from "react-dom/client"
 import App from "./App.jsx"
 import "./index.css"
-import { validateEnvironment } from "./config/environment"
-
-// Validate environment variables
-validateEnvironment()
+import { AuthProvider } from "./context/AuthContext" // Import AuthProvider
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      {" "}
+      {/* Wrap App with AuthProvider */}
+      <App />
+    </AuthProvider>
   </React.StrictMode>,
 )
 

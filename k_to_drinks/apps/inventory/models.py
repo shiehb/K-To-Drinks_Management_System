@@ -1,68 +1,95 @@
-# apps/inventory/models.py
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from apps.base.models import TimeStampedModel
 from apps.products.models import Product
 
-class Inventory(models.Model):
-    """Inventory model to track product stock."""
-    product = models.OneToOneField(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='inventory',
-        verbose_name=_('product')
-    )
-    current_stock = models.PositiveIntegerField(_('current stock'), default=0)
-    last_updated = models.DateTimeField(_('last updated'), auto_now=True)
-    
-    class Meta:
-        verbose_name = _('inventory')
-        verbose_name_plural = _('inventories')
-    
-    def __str__(self):
-        return f"{self.product.name} - {self.current_stock} units"
 
-class InventoryTransaction(models.Model):
-    """Model to track inventory changes."""
-    TRANSACTION_IN = 'in'
-    TRANSACTION_OUT = 'out'
-    TRANSACTION_ADJUSTMENT = 'adjustment'
-    
-    TRANSACTION_TYPES = [
-        (TRANSACTION_IN, _('Stock In')),
-        (TRANSACTION_OUT, _('Stock Out')),
-        (TRANSACTION_ADJUSTMENT, _('Adjustment')),
-    ]
-    
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='transactions',
-        verbose_name=_('product')
-    )
-    transaction_type = models.CharField(
-        _('transaction type'),
-        max_length=20,
-        choices=TRANSACTION_TYPES
-    )
-    quantity = models.IntegerField(_('quantity'))
-    previous_stock = models.PositiveIntegerField(_('previous stock'))
-    new_stock = models.PositiveIntegerField(_('new stock'))
-    reference = models.CharField(_('reference'), max_length=100, blank=True)
-    reason = models.TextField(_('reason'), blank=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='inventory_transactions',
-        verbose_name=_('created by')
-    )
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+class Inventory(TimeStampedModel):
+    """
+    Inventory model for tracking product stock
+    """
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='inventory')
+    quantity = models.IntegerField(default=0)
+    reorder_level = models.IntegerField(default=10)
+    last_checked = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = _('inventory transaction')
-        verbose_name_plural = _('inventory transactions')
-        ordering = ['-created_at']
+        verbose_name = 'Inventory'
+        verbose_name_plural = 'Inventory'
+        
+    def __str__(self):
+        return f"{self.product.name} - {self.quantity} units"
     
+    @property
+    def is_low_stock(self):
+        return self.quantity <= self.reorder_level
+
+
+class InventoryTransaction(TimeStampedModel):
+    """
+    Inventory transaction model for tracking stock changes
+    """
+    TRANSACTION_TYPES = (
+        ('in', 'Stock In'),
+        ('out', 'Stock Out'),
+        ('adjustment', 'Adjustment'),
+    )
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='transactions')
+    quantity = models.IntegerField()
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    reference = models.CharField(max_length=100, blank=True, null=True)
+    reason = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='inventory_transactions')
+
+    class Meta:
+        verbose_name = 'Inventory Transaction'
+        verbose_name_plural = 'Inventory Transactions'
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.transaction_type} - {self.product.name} ({self.quantity})"
+
+    def save(self, *args, **kwargs):
+        # Update product stock quantity
+        if self.transaction_type == 'in':
+            self.product.stock_quantity += self.quantity
+        elif self.transaction_type == 'out':
+            self.product.stock_quantity -= self.quantity
+        else:  # adjustment
+            self.product.stock_quantity += self.quantity  # Can be negative for reduction
+
+        self.product.save()
+        
+        # Update inventory record
+        inventory, created = Inventory.objects.get_or_create(product=self.product)
+        if self.transaction_type == 'in':
+            inventory.quantity += self.quantity
+        elif self.transaction_type == 'out':
+            inventory.quantity -= self.quantity
+        else:  # adjustment
+            inventory.quantity += self.quantity
+        
+        inventory.save()
+        
+        super().save(*args, **kwargs)
+
+
+class ProductExpiry(TimeStampedModel):
+    """
+    Product expiry tracking
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='expiry_records')
+    batch_number = models.CharField(max_length=100)
+    quantity = models.IntegerField()
+    expiry_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Product Expiry'
+        verbose_name_plural = 'Product Expiries'
+        ordering = ['expiry_date']
+
+    def __str__(self):
+        return f"{self.product.name} - {self.batch_number} (Expires: {self.expiry_date})"
+

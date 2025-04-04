@@ -1,11 +1,10 @@
-# apps/dashboard/urls.py
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import DashboardViewSet
+from django.urls import path
+from .views import DashboardSummaryView, SalesDataView
 
-router = DefaultRouter()
-router.register(r'dashboard', DashboardViewSet, basename='dashboard')
+app_name = 'dashboard'
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('summary/', DashboardSummaryView.as_view(), name='summary'),
+    path('sales/', SalesDataView.as_view(), name='sales'),
 ]
+

@@ -7,7 +7,7 @@ import { FaTruck, FaCheckCircle, FaHourglassHalf, FaCalendarDay, FaSearch, FaMap
 import StatusUpdateModal from "./StatusUpdateModal"
 import MapView from "./MapView"
 import SignaturePad from "./SignaturePad"
-import { employeeService } from "../../services/api"
+import api from "../../api/api_url"
 import useDebounce from "../../hooks/useDebounce"
 import { useMediaQuery } from "../../hooks/useMediaQuery"
 import "../../css/pages.css"
@@ -51,9 +51,9 @@ const DeliveryDashboard = ({
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const result = await employeeService.getDeliveryEmployees()
-        if (result.success) {
-          setEmployees(result.data)
+        const response = await api.get("/employees/?role=delivery")
+        if (response.data) {
+          setEmployees(response.data)
         } else {
           toast.error("Failed to fetch delivery staff")
         }

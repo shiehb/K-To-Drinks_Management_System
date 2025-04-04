@@ -44,8 +44,8 @@ export default function UserManagement({ users, loading, setUsers }) {
     setIsLoading(true)
 
     // Check if required fields are filled
-    if (!userForm.username || !userForm.name || !userForm.email) {
-      toast.error("Username, Name, and Email are required.")
+    if (!userForm.username || !userForm.name) {
+      toast.error("Username and Name are required.")
       setIsLoading(false)
       return
     }
@@ -62,13 +62,9 @@ export default function UserManagement({ users, loading, setUsers }) {
           const isDuplicateName = users.some(
             (user) => user.name.toLowerCase() === userForm.name.toLowerCase() && user.id !== userForm.id,
           )
-          const isDuplicateEmail = users.some(
-            (user) => user.email.toLowerCase() === userForm.email.toLowerCase() && user.id !== userForm.id,
-          )
 
           if (isDuplicateUsername) throw new Error("Username is already taken.")
           if (isDuplicateName) throw new Error("Name is already taken.")
-          if (isDuplicateEmail) throw new Error("Email is already taken.")
 
           // Determine the API URL and method
           const url = userForm.id ? `/users/${userForm.id}/` : `/users/`
@@ -184,8 +180,7 @@ export default function UserManagement({ users, loading, setUsers }) {
     (user) =>
       (activeTab === "archived" ? user.status === "archived" : user.status === "active") &&
       (user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        user.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (roleFilter === "all" || roleFilter === "" || user.role === roleFilter),
   )
 
@@ -221,7 +216,7 @@ export default function UserManagement({ users, loading, setUsers }) {
           .map((user) => {
             // Escape fields that might contain commas
             const escapedName = `"${capitalizeEachWord(user.name)}"`
-            const escapedEmail = `"${user.email}"`
+            const escapedEmail = `"${user.email || ""}"`
             return [user.id, user.username, escapedName, escapedEmail, user.role, user.status].join(",")
           })
           .join("\n")
@@ -403,7 +398,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                         <TableCell className="id-cell text-center">{user.id}</TableCell>
                         <TableCell className="text-center">{user.username}</TableCell>
                         <TableCell className="text-center">{capitalizeEachWord(user.name)}</TableCell>
-                        <TableCell className="email-cell text-center">{user.email}</TableCell>
+                        <TableCell className="email-cell text-center">{user.email || "-"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="role-badge mx-auto">
                             {getRoleDisplayName(user.role)}
@@ -474,7 +469,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                         <TableCell className="id-cell text-center">{user.id}</TableCell>
                         <TableCell className="text-center">{user.username}</TableCell>
                         <TableCell className="text-center">{capitalizeEachWord(user.name)}</TableCell>
-                        <TableCell className="email-cell text-center">{user.email}</TableCell>
+                        <TableCell className="email-cell text-center">{user.email || "-"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="role-badge mx-auto">
                             {getRoleDisplayName(user.role)}
@@ -538,15 +533,14 @@ export default function UserManagement({ users, loading, setUsers }) {
 
                 <div className="form-group">
                   <label htmlFor="email" className="form-label">
-                    Email:
+                    Email (Optional):
                   </label>
                   <input
                     id="email"
                     type="email"
                     value={userForm.email}
                     onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                    placeholder="Enter email address"
-                    required
+                    placeholder="Enter email address (optional)"
                     className="form-input"
                   />
                 </div>

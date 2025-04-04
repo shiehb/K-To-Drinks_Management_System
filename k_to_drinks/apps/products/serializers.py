@@ -1,39 +1,38 @@
-# apps/products/serializers.py
 from rest_framework import serializers
-from .models import Category, Product
+from .models import Category, Product, Supplier
 from apps.inventory.models import Inventory
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description']
+        fields = '__all__'
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = '__all__'
+
+
+class InventorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Inventory
+        fields = ['quantity', 'reorder_level', 'is_low_stock', 'last_checked']
+
 
 class ProductSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(),
-        source='category',
-        write_only=True
-    )
-    current_stock = serializers.SerializerMethodField()
+    category_name = serializers.ReadOnlyField(source='category.name')
+    supplier_name = serializers.ReadOnlyField(source='supplier.name')
+    inventory = InventorySerializer(read_only=True)
     
     class Meta:
         model = Product
         fields = [
-            'id', 'product_id', 'name', 'description', 'category', 'category_id',
-            'unit_price', 'size', 'barcode', 'reorder_level', 'active',
-            'current_stock', 'created_at', 'updated_at'
+            'id', 'product_id', 'name', 'brand', 'description', 
+            'category', 'category_name', 'supplier', 'supplier_name',
+            'price', 'cost_price', 'size', 'barcode', 
+            'stock_quantity', 'reorder_level', 'is_active',
+            'inventory', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
-    def get_current_stock(self, obj):
-        try:
-            return obj.inventory.current_stock
-        except Inventory.DoesNotExist:
-            return 0
-    
-    def create(self, validated_data):
-        product = super().create(validated_data)
-        # Create inventory record for the product
-        Inventory.objects.create(product=product, current_stock=0)
-        return product
+

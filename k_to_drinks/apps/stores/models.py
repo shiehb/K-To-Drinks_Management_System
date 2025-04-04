@@ -1,25 +1,34 @@
-# apps/stores/models.py
 from django.db import models
-from django.utils.translation import gettext_lazy as _
+from apps.base.models import TimeStampedModel
 
-class Store(models.Model):
-    """Store model."""
-    name = models.CharField(_('name'), max_length=200)
-    location = models.TextField(_('location'))
-    lat = models.FloatField(_('latitude'), null=True, blank=True)
-    lng = models.FloatField(_('longitude'), null=True, blank=True)
-    owner_name = models.CharField(_('owner name'), max_length=200)
-    email = models.EmailField(_('email'), blank=True)
-    number = models.CharField(_('contact number'), max_length=20)
-    day = models.CharField(_('delivery day'), max_length=20)
-    is_archived = models.BooleanField(_('is archived'), default=False)
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
-    
+
+class Store(TimeStampedModel):
+    """
+    Store model for managing local stores
+    """
+    name = models.CharField(max_length=255)
+    location = models.TextField()
+    lat = models.FloatField(verbose_name="Latitude")
+    lng = models.FloatField(verbose_name="Longitude")
+    owner_name = models.CharField(max_length=255)
+    email = models.EmailField(blank=True, null=True)
+    number = models.CharField(max_length=20)
+    day = models.CharField(max_length=20, choices=(
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    ))
+    is_archived = models.BooleanField(default=False)
+
     class Meta:
-        verbose_name = _('store')
-        verbose_name_plural = _('stores')
+        verbose_name = 'Store'
+        verbose_name_plural = 'Stores'
         ordering = ['name']
-    
+
     def __str__(self):
         return self.name
+

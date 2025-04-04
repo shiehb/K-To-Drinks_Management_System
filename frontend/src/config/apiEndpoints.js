@@ -12,7 +12,6 @@ export const AUTH_ENDPOINTS = {
   REFRESH: `${API_BASE_URL}/token/refresh/`,
   VERIFY: `${API_BASE_URL}/token/verify/`,
   CHANGE_PASSWORD: `${API_BASE_URL}/users/change-password/`,
-  RESET_PASSWORD: `${API_BASE_URL}/users/reset-password/`,
 }
 
 // User management endpoints

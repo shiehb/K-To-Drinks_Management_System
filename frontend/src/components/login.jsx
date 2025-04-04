@@ -5,52 +5,57 @@ import { useNavigate } from "react-router"
 import { useAuth } from "../context/AuthContext"
 import "../css/login.css"
 import Loader from "./styled-components/Loader"
-import { validateLoginInput } from "../utils/validators" // We'll create this utility
-import { AlertCircle, RefreshCw, WifiOff } from "lucide-react"
+import { toast } from "react-toastify"
+import { Eye, EyeOff, User, Lock, AlertCircle } from "lucide-react"
 
-export default function Login({ connectionStatus, onRetryConnection, checkingConnection }) {
-  const [error, setError] = useState("")
+export default function Login() {
   const [credentials, setCredentials] = useState({ username: "", password: "" })
+  const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const [validationErrors, setValidationErrors] = useState({})
   const { login, user, darkMode, toggleDarkMode } = useAuth()
   const navigate = useNavigate()
-  const loginAttemptTimeoutRef = useRef(null)
+  const usernameRef = useRef(null)
+  const passwordRef = useRef(null)
 
   // Check if user is already logged in
   useEffect(() => {
     if (user) {
       navigate("/dashboard")
     }
-
-    // Check for saved username
-    const savedUsername = localStorage.getItem("rememberedUsername")
-    if (savedUsername) {
-      setCredentials((prev) => ({ ...prev, username: savedUsername }))
-      setRememberMe(true)
-    }
-
-    // Clean up timeout on unmount
-    return () => {
-      if (loginAttemptTimeoutRef.current) {
-        clearTimeout(loginAttemptTimeoutRef.current)
-      }
-    }
   }, [user, navigate])
+
+  // Focus on username field on component mount
+  useEffect(() => {
+    if (usernameRef.current) {
+      usernameRef.current.focus()
+    }
+  }, [])
+
+  // Validate form inputs
+  const validateForm = () => {
+    const newErrors = {}
+
+    if (!credentials.username.trim()) {
+      newErrors.username = "Username is required"
+    }
+
+    if (!credentials.password.trim()) {
+      newErrors.password = "Password is required"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target
     setCredentials({ ...credentials, [name]: value })
 
-    // Clear validation errors when user types
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        [name]: undefined,
-      }))
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null })
     }
   }
 
@@ -58,54 +63,47 @@ export default function Login({ connectionStatus, onRetryConnection, checkingCon
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // If disconnected, attempt to reconnect first
-    if (connectionStatus === "disconnected") {
-      onRetryConnection()
-      return
-    }
-
-    setError("")
-
-    // Validate inputs
-    const { isValid, errors } = validateLoginInput(credentials)
-    if (!isValid) {
-      setValidationErrors(errors)
+    if (!validateForm()) {
       return
     }
 
     setLoading(true)
 
     // Set a timeout to hide the loader after 15 seconds
-    loginAttemptTimeoutRef.current = setTimeout(() => {
+    const loaderTimeout = setTimeout(() => {
       setLoading(false)
-      setError("Login process is taking longer than expected. Please try again.")
+      toast.error("Login process is taking longer than expected. Please try again.")
     }, 15000)
 
     try {
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem("rememberedUsername", credentials.username)
-      } else {
-        localStorage.removeItem("rememberedUsername")
+      // Sanitize inputs to prevent XSS
+      const sanitizedCredentials = {
+        username: credentials.username.trim(),
+        password: credentials.password,
       }
 
-      const success = await login(credentials)
+      const success = await login(sanitizedCredentials)
 
       if (success) {
+        toast.success("Login successful! Redirecting to dashboard...")
         // Redirect to dashboard on success
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
         }, 100)
       } else {
         // Show error message on failure
-        setError("Invalid username or password")
+        toast.error("Invalid username or password")
         // Only clear password field
         setCredentials((prev) => ({ ...prev, password: "" }))
+        if (passwordRef.current) {
+          passwordRef.current.focus()
+        }
       }
     } catch (err) {
-      setError("An error occurred during login. Please try again.")
+      console.error("Login error:", err)
+      toast.error("An error occurred during login. Please try again.")
     } finally {
-      clearTimeout(loginAttemptTimeoutRef.current)
+      clearTimeout(loaderTimeout)
       setLoading(false)
     }
   }
@@ -115,46 +113,25 @@ export default function Login({ connectionStatus, onRetryConnection, checkingCon
     setShowPassword(!showPassword)
   }
 
-  // Render connection status message
-  const renderConnectionStatus = () => {
-    if (connectionStatus === "disconnected") {
-      return (
-        <div className="connection-status-banner disconnected">
-          <WifiOff size={20} />
-          <span>Server connection unavailable</span>
-          <button onClick={onRetryConnection} disabled={checkingConnection} className="retry-connection-btn">
-            {checkingConnection ? (
-              <>
-                <RefreshCw size={16} className="spin-animation" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <RefreshCw size={16} />
-                Retry Connection
-              </>
-            )}
-          </button>
-        </div>
-      )
+  // Handle Enter key press
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSubmit(e)
     }
-    return null
   }
 
   return (
     <>
       {/* Full-screen loader */}
       {loading && (
-        <div className="loader-overlay">
+        <div className="loader-overlay" aria-live="polite" aria-busy="true">
           <Loader />
+          <p className="loading-text">Please wait...</p>
         </div>
       )}
 
       {/* Login Container */}
       <div className="login-wrapper">
-        {/* Connection status banner */}
-        {renderConnectionStatus()}
-
         {/* Dark mode toggle */}
         <button
           className="theme-toggle-btn"
@@ -163,14 +140,6 @@ export default function Login({ connectionStatus, onRetryConnection, checkingCon
         >
           <i className={`fas fa-${darkMode ? "sun" : "moon"}`}></i>
         </button>
-
-        {/* Error message */}
-        {error && (
-          <div className="error-message" role="alert">
-            <AlertCircle size={18} />
-            {error}
-          </div>
-        )}
 
         <div className="login-container">
           {/* Left Section */}
@@ -198,26 +167,28 @@ export default function Login({ connectionStatus, onRetryConnection, checkingCon
                   Username
                 </label>
                 <div className="input-with-icon">
-                  <i className="fas fa-user input-icon"></i>
+                  <User className="input-icon" />
                   <input
                     type="text"
                     id="username"
                     name="username"
                     value={credentials.username}
                     onChange={handleChange}
-                    className={`inputs ${validationErrors.username ? "error-input" : ""}`}
+                    className={`inputs ${errors.username ? "input-error" : ""}`}
                     placeholder="Enter your username"
                     required
                     autoComplete="username"
-                    aria-invalid={!!validationErrors.username}
-                    aria-describedby={validationErrors.username ? "username-error" : undefined}
-                    disabled={connectionStatus === "disconnected"}
+                    ref={usernameRef}
+                    onKeyDown={handleKeyDown}
+                    aria-invalid={errors.username ? "true" : "false"}
+                    aria-describedby={errors.username ? "username-error" : undefined}
                   />
                 </div>
-                {validationErrors.username && (
-                  <p id="username-error" className="error-text">
-                    {validationErrors.username}
-                  </p>
+                {errors.username && (
+                  <div className="error-message-inline" id="username-error">
+                    <AlertCircle size={16} />
+                    <span>{errors.username}</span>
+                  </div>
                 )}
               </div>
 
@@ -227,61 +198,43 @@ export default function Login({ connectionStatus, onRetryConnection, checkingCon
                   Password
                 </label>
                 <div className="input-with-icon">
-                  <i className="fas fa-lock input-icon"></i>
+                  <Lock className="input-icon" />
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
                     name="password"
                     value={credentials.password}
                     onChange={handleChange}
-                    className={`inputs ${validationErrors.password ? "error-input" : ""}`}
+                    className={`inputs ${errors.password ? "input-error" : ""}`}
                     placeholder="Enter your password"
                     required
                     autoComplete="current-password"
-                    aria-invalid={!!validationErrors.password}
-                    aria-describedby={validationErrors.password ? "password-error" : undefined}
-                    disabled={connectionStatus === "disconnected"}
+                    ref={passwordRef}
+                    onKeyDown={handleKeyDown}
+                    aria-invalid={errors.password ? "true" : "false"}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                   />
-                  <span
+                  <button
+                    type="button"
                     className="password-toggle-icon"
                     onClick={toggleShowPassword}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    role="button"
                     tabIndex="0"
-                    onKeyDown={(e) => e.key === "Enter" && toggleShowPassword()}
                   >
-                    {showPassword ? <i className="fas fa-eye-slash"></i> : <i className="fas fa-eye"></i>}
-                  </span>
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
-                {validationErrors.password && (
-                  <p id="password-error" className="error-text">
-                    {validationErrors.password}
-                  </p>
+                {errors.password && (
+                  <div className="error-message-inline" id="password-error">
+                    <AlertCircle size={16} />
+                    <span>{errors.password}</span>
+                  </div>
                 )}
               </div>
 
-              {/* Remember me checkbox */}
-              <div className="remember-me">
-                <label className="checkbox-container">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={() => setRememberMe(!rememberMe)}
-                    id="remember-me"
-                    disabled={connectionStatus === "disconnected"}
-                  />
-                  <span className="checkmark"></span>
-                  Remember me
-                </label>
-              </div>
-
               {/* Login button */}
-              <button
-                type="submit"
-                className={`button ${connectionStatus === "disconnected" ? "reconnect-button" : ""}`}
-                disabled={loading}
-              >
-                {loading ? "LOGGING IN..." : connectionStatus === "disconnected" ? "RECONNECT TO SERVER" : "LOGIN"}
+              <button type="submit" className="button" disabled={loading} aria-busy={loading}>
+                {loading ? "LOGGING IN..." : "LOGIN"}
               </button>
             </form>
           </div>

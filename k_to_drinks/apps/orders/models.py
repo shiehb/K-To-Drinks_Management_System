@@ -1,86 +1,68 @@
-# apps/orders/models.py
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from apps.base.models import TimeStampedModel
 from apps.stores.models import Store
 from apps.products.models import Product
 
-class Order(models.Model):
-    """Order model."""
-    STATUS_PENDING = 'pending'
-    STATUS_PROCESSING = 'processing'
-    STATUS_COMPLETED = 'completed'
-    STATUS_CANCELLED = 'cancelled'
-    
-    STATUS_CHOICES = [
-        (STATUS_PENDING, _('Pending')),
-        (STATUS_PROCESSING, _('Processing')),
-        (STATUS_COMPLETED, _('Completed')),
-        (STATUS_CANCELLED, _('Cancelled')),
-    ]
-    
-    order_id = models.CharField(_('order ID'), max_length=50, unique=True)
-    store = models.ForeignKey(
-        Store,
-        on_delete=models.CASCADE,
-        related_name='orders',
-        verbose_name=_('store')
+
+class Order(TimeStampedModel):
+    """
+    Order model
+    """
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
     )
-    status = models.CharField(
-        _('status'),
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_PENDING
-    )
-    notes = models.TextField(_('notes'), blank=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='created_orders',
-        verbose_name=_('created by')
-    )
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
-    
+
+    order_id = models.CharField(max_length=50, unique=True)
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='orders')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='orders')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    delivery_day = models.CharField(max_length=20, choices=Store._meta.get_field('day').choices)
+    notes = models.TextField(blank=True, null=True)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     class Meta:
-        verbose_name = _('order')
-        verbose_name_plural = _('orders')
+        verbose_name = 'Order'
+        verbose_name_plural = 'Orders'
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return self.order_id
-    
-    @property
-    def total_amount(self):
-        """Calculate the total amount of the order."""
-        return sum(item.total_price for item in self.items.all())
 
-class OrderItem(models.Model):
-    """Order item model."""
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        related_name='items',
-        verbose_name=_('order')
-    )
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='order_items',
-        verbose_name=_('product')
-    )
-    quantity = models.PositiveIntegerField(_('quantity'))
-    unit_price = models.DecimalField(_('unit price'), max_digits=10, decimal_places=2)
-    
+    def calculate_totals(self):
+        """Calculate order totals"""
+        self.subtotal = sum(item.total for item in self.items.all())
+        self.tax = self.subtotal * 0.02  # 2% tax
+        self.total = self.subtotal + self.tax
+        self.save()
+
+
+class OrderItem(TimeStampedModel):
+    """
+    Order item model
+    """
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='order_items')
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
     class Meta:
-        verbose_name = _('order item')
-        verbose_name_plural = _('order items')
-    
+        verbose_name = 'Order Item'
+        verbose_name_plural = 'Order Items'
+
     def __str__(self):
-        return f"{self.product.name} ({self.quantity})"
-    
-    @property
-    def total_price(self):
-        """Calculate the total price of the order item."""
-        return self.quantity * self.unit_price
+        return f"{self.order.order_id} - {self.product.name} ({self.quantity})"
+
+    def save(self, *args, **kwargs):
+        # Calculate total
+        self.total = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+        # Update order totals
+        self.order.calculate_totals()
+

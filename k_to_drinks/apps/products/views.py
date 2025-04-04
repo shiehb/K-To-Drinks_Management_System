@@ -1,40 +1,31 @@
-# apps/products/views.py
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
-from .models import Category, Product
-from .serializers import CategorySerializer, ProductSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Category, Product, Supplier
+from .serializers import CategorySerializer, ProductSerializer, SupplierSerializer
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['name']
+
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        queryset = Product.objects.all()
-        
-        # Filter by category
-        category_id = self.request.query_params.get('category_id')
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-        
-        # Filter by active status
-        active = self.request.query_params.get('active')
-        if active is not None:
-            active = active.lower() == 'true'
-            queryset = queryset.filter(active=active)
-        
-        # Search by name or product_id
-        search = self.request.query_params.get('search')
-        if search:
-            queryset = queryset.filter(
-                models.Q(name__icontains=search) |
-                models.Q(product_id__icontains=search) |
-                models.Q(barcode__icontains=search)
-            )
-        
-        return queryset
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['name', 'brand', 'product_id', 'barcode']
+    filterset_fields = ['category', 'supplier', 'is_active']
+
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    queryset = Supplier.objects.all()
+    serializer_class = SupplierSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['name', 'contact_person']
+
