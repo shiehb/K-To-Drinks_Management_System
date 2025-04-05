@@ -85,7 +85,6 @@ export default function Login() {
       const success = await login(sanitizedCredentials)
 
       if (success) {
-        toast.success("Login successful! Redirecting to dashboard...")
         // Redirect to dashboard on success
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
@@ -241,14 +240,6 @@ export default function Login() {
               aria-busy={loading} 
               aria-disabled={loading}
             >
-              {loading ? (
-                <>
-                  <span className="sr-only">Loading...</span>
-                  <span aria-hidden="true">LOGGING IN...</span>
-                </>
-              ) : (
-                "LOGIN"
-              )}
             </button>
           </form>
         </div>

@@ -1,7 +1,23 @@
+"use client"
+
 import { useState, useRef } from "react"
 import { toast } from "react-toastify"
 import api from "../api/api_url"
-import { Archive, Download, Edit, RefreshCcw, UserPlus, Pause, Play, Search } from "lucide-react"
+import { useAuth } from "../context/AuthContext"
+import {
+  Archive,
+  Download,
+  Edit,
+  RefreshCcw,
+  UserPlus,
+  Pause,
+  Play,
+  Search,
+  X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 
 // Import shadcn components
 import { Button } from "@/components/ui/button"
@@ -11,10 +27,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import "../css/usermanagement.css"
 
 export default function UserManagement({ users, loading, setUsers }) {
+  const { darkMode } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("")
   const [isUserModalOpen, setIsUserModalOpen] = useState(false)
@@ -39,6 +57,35 @@ export default function UserManagement({ users, loading, setUsers }) {
     message: "",
     onConfirm: () => {},
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [usersPerPage] = useState(10)
+  const [sortConfig, setSortConfig] = useState({ key: "id", direction: "ascending" })
+
+  // Handle sorting
+  const requestSort = (key) => {
+    let direction = "ascending"
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending"
+    }
+    setSortConfig({ key, direction })
+  }
+
+  // Get sorted users
+  const getSortedUsers = (usersArray) => {
+    if (!usersArray || usersArray.length === 0) return []
+
+    const sortableUsers = [...usersArray]
+    sortableUsers.sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === "ascending" ? -1 : 1
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === "ascending" ? 1 : -1
+      }
+      return 0
+    })
+    return sortableUsers
+  }
 
   // Handle User Form Submission
   const handleUserFormSubmit = async (e) => {
@@ -225,6 +272,16 @@ export default function UserManagement({ users, loading, setUsers }) {
       (roleFilter === "all" || roleFilter === "" || user.role === roleFilter),
   )
 
+  // Get current users for pagination
+  const indexOfLastUser = currentPage * usersPerPage
+  const indexOfFirstUser = indexOfLastUser - usersPerPage
+  const sortedUsers = getSortedUsers(filteredUsers)
+  const currentUsers = sortedUsers.slice(indexOfFirstUser, indexOfLastUser)
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
   // Export Users to CSV
   const exportUsers = () => {
     try {
@@ -315,11 +372,19 @@ export default function UserManagement({ users, loading, setUsers }) {
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value)
+    setCurrentPage(1) // Reset to first page on new search
   }
 
   const handleFocus = () => {
     if (inputRef.current) {
       inputRef.current.select()
+    }
+  }
+
+  const clearSearch = () => {
+    setSearchTerm("")
+    if (inputRef.current) {
+      inputRef.current.focus()
     }
   }
 
@@ -344,7 +409,7 @@ export default function UserManagement({ users, loading, setUsers }) {
   }
 
   return (
-    <Card className="user-management-card">
+    <Card className={`user-management-card ${darkMode ? "dark-mode" : "light-mode"}`}>
       <CardHeader className="card-header">
         <div className="header-container">
           <CardTitle className="card-title">User Management</CardTitle>
@@ -361,18 +426,24 @@ export default function UserManagement({ users, loading, setUsers }) {
         </div>
       </CardHeader>
       <CardContent className="card-content">
-        {/* Replace the old filter container with the new FilterBar component */}
+        {/* Modern Filter Bar */}
         <div className="filter-bar">
           <div className="tabs-container">
             <button
               className={`tab-button ${activeTab === "active" ? "active" : ""}`}
-              onClick={() => setActiveTab("active")}
+              onClick={() => {
+                setActiveTab("active")
+                setCurrentPage(1)
+              }}
             >
               Manage Users
             </button>
             <button
               className={`tab-button ${activeTab === "archived" ? "active" : ""}`}
-              onClick={() => setActiveTab("archived")}
+              onClick={() => {
+                setActiveTab("archived")
+                setCurrentPage(1)
+              }}
             >
               Archived Users
             </button>
@@ -389,10 +460,21 @@ export default function UserManagement({ users, loading, setUsers }) {
                 ref={inputRef}
                 className="search-input"
               />
+              {searchTerm && (
+                <button onClick={clearSearch} className="clear-search-button">
+                  <X size={16} />
+                </button>
+              )}
             </div>
 
             <div className="role-select-container">
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <Select
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value)
+                  setCurrentPage(1)
+                }}
+              >
                 <SelectTrigger className="role-select-trigger">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
@@ -409,15 +491,8 @@ export default function UserManagement({ users, loading, setUsers }) {
           <div className="status-badge">
             <div className="status-indicator">
               <span className="status-dot"></span>
-              Showing <strong>{filteredUsers.length}</strong> of{" "}
-              <strong>
-                {
-                  users.filter((user) =>
-                    activeTab === "archived" ? user.status === "archived" : user.status !== "archived",
-                  ).length
-                }
-              </strong>{" "}
-              {activeTab}
+              Showing <strong>{currentUsers.length}</strong> of <strong>{filteredUsers.length}</strong>{" "}
+              {activeTab === "archived" ? "archived" : "active"} users
             </div>
           </div>
         </div>
@@ -428,35 +503,66 @@ export default function UserManagement({ users, loading, setUsers }) {
               <Table className="user-table">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="id-column text-center">ID</TableHead>
-                    <TableHead className="text-center">Username</TableHead>
-                    <TableHead className="text-center">First Name</TableHead>
-                    <TableHead className="text-center">Last Name</TableHead>
+                    <TableHead className="id-column text-center sortable-header" onClick={() => requestSort("id")}>
+                      ID{" "}
+                      {sortConfig.key === "id" && (
+                        <span className="sort-indicator">{sortConfig.direction === "ascending" ? "↑" : "↓"}</span>
+                      )}
+                    </TableHead>
+                    <TableHead className="text-center sortable-header" onClick={() => requestSort("username")}>
+                      Username{" "}
+                      {sortConfig.key === "username" && (
+                        <span className="sort-indicator">{sortConfig.direction === "ascending" ? "↑" : "↓"}</span>
+                      )}
+                    </TableHead>
+                    <TableHead className="text-center sortable-header" onClick={() => requestSort("first_name")}>
+                      First Name{" "}
+                      {sortConfig.key === "first_name" && (
+                        <span className="sort-indicator">{sortConfig.direction === "ascending" ? "↑" : "↓"}</span>
+                      )}
+                    </TableHead>
+                    <TableHead className="text-center sortable-header" onClick={() => requestSort("last_name")}>
+                      Last Name{" "}
+                      {sortConfig.key === "last_name" && (
+                        <span className="sort-indicator">{sortConfig.direction === "ascending" ? "↑" : "↓"}</span>
+                      )}
+                    </TableHead>
                     <TableHead className="email-column text-center">Email</TableHead>
                     <TableHead className="text-center">Phone</TableHead>
-                    <TableHead className="text-center">Role</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center sortable-header" onClick={() => requestSort("role")}>
+                      Role{" "}
+                      {sortConfig.key === "role" && (
+                        <span className="sort-indicator">{sortConfig.direction === "ascending" ? "↑" : "↓"}</span>
+                      )}
+                    </TableHead>
+                    <TableHead className="text-center sortable-header" onClick={() => requestSort("status")}>
+                      Status{" "}
+                      {sortConfig.key === "status" && (
+                        <span className="sort-indicator">{sortConfig.direction === "ascending" ? "↑" : "↓"}</span>
+                      )}
+                    </TableHead>
                     <TableHead className="actions-column text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="loading-cell text-center">
-                        <div className="loading-indicator flex justify-center items-center">
-                          <RefreshCcw className="loading-icon" />
-                          Loading users...
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredUsers.length === 0 ? (
+                    Array(5)
+                      .fill(0)
+                      .map((_, index) => (
+                        <TableRow key={`skeleton-${index}`}>
+                          <TableCell colSpan={9} className="loading-cell">
+                            <Skeleton className="h-10 w-full" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  ) : currentUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="empty-cell text-center">
-                        No users found
+                        {searchTerm ? "No users found matching your search" : "No users found"}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredUsers.map((user) => (
+                    currentUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="id-cell text-center">{user.id}</TableCell>
                         <TableCell className="text-center">{user.username || "-"}</TableCell>
@@ -484,6 +590,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                               size="sm"
                               onClick={() => openUserModal(user)}
                               className="action-button"
+                              title="Edit User"
                             >
                               <Edit className="action-icon" />
                             </Button>
@@ -493,6 +600,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                                 size="sm"
                                 onClick={() => handleDeactivateUser(user.id)}
                                 className="action-button"
+                                title="Deactivate User"
                               >
                                 <Pause className="action-icon" />
                               </Button>
@@ -502,6 +610,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                                 size="sm"
                                 onClick={() => handleActivateUser(user.id)}
                                 className="action-button"
+                                title="Activate User"
                               >
                                 <Play className="action-icon" />
                               </Button>
@@ -511,6 +620,7 @@ export default function UserManagement({ users, loading, setUsers }) {
                               size="sm"
                               onClick={() => handleArchiveUser(user.id)}
                               className="action-button"
+                              title="Archive User"
                             >
                               <Archive className="action-icon" />
                             </Button>
@@ -522,6 +632,47 @@ export default function UserManagement({ users, loading, setUsers }) {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination */}
+            {filteredUsers.length > 0 && (
+              <div className="pagination">
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(1)}
+                  disabled={currentPage === 1}
+                  className="pagination-button"
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="pagination-button"
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="pagination-info">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="pagination-button"
+                >
+                  <ChevronRight size={16} />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="pagination-button"
+                >
+                  Last
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="archived" className="tab-content">
@@ -549,14 +700,14 @@ export default function UserManagement({ users, loading, setUsers }) {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : filteredUsers.length === 0 ? (
+                  ) : currentUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="empty-cell text-center">
                         No archived users found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredUsers.map((user) => (
+                    currentUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="id-cell text-center">{user.id}</TableCell>
                         <TableCell className="text-center">{user.username || "-"}</TableCell>
@@ -586,6 +737,47 @@ export default function UserManagement({ users, loading, setUsers }) {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination for archived users */}
+            {filteredUsers.length > 0 && (
+              <div className="pagination">
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(1)}
+                  disabled={currentPage === 1}
+                  className="pagination-button"
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="pagination-button"
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="pagination-info">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="pagination-button"
+                >
+                  <ChevronRight size={16} />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => paginate(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="pagination-button"
+                >
+                  Last
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
@@ -722,7 +914,13 @@ export default function UserManagement({ users, loading, setUsers }) {
           <div className="custom-modal-overlay">
             <div className="custom-modal confirmation-modal">
               <div className="confirmation-icon">
-                <span className="material-icons">warning</span>
+                {confirmationDialog.title.includes("Archive") || confirmationDialog.title.includes("Deactivate") ? (
+                  <Archive size={40} className="warning-icon" />
+                ) : confirmationDialog.title.includes("Cancel") ? (
+                  <X size={40} className="warning-icon" />
+                ) : (
+                  <Check size={40} className="success-icon" />
+                )}
               </div>
               <h3 className="confirmation-title">{confirmationDialog.title}</h3>
               <p className="confirmation-message">{confirmationDialog.message}</p>

@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { NavLink, useLocation } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import "../css/nav.css"
 
 function NavBar({ isOpen, isMobile, isHidden }) {
   const location = useLocation()
+  const { darkMode } = useAuth()
   const [showOrderDropdown, setShowOrderDropdown] = useState(false)
 
   const navItems = [
@@ -22,12 +24,22 @@ function NavBar({ isOpen, isMobile, isHidden }) {
     setShowOrderDropdown(!showOrderDropdown)
   }
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showOrderDropdown) setShowOrderDropdown(false)
+    }
+
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [showOrderDropdown])
+
   // Check if current route is order or delivery
   const isOrderActive = location.pathname === "/order" || location.pathname === "/delivery"
 
   return (
     <nav
-      className={`navigation ${isOpen ? "open" : "closed"} ${isMobile ? "mobile" : ""} ${isHidden ? "hidden" : ""}`}
+      className={`navigation ${isOpen ? "open" : "closed"} ${isMobile ? "mobile" : ""} ${isHidden ? "hidden" : ""} ${darkMode ? "dark-mode" : "light-mode"}`}
       aria-label="Main Navigation"
       aria-hidden={!isOpen && isMobile}
     >
@@ -47,6 +59,7 @@ function NavBar({ isOpen, isMobile, isHidden }) {
                 {item.icon}
               </span>
               <span className="nav-label">{item.label}</span>
+              {item.badge && <span className="nav-badge">{item.badge}</span>}
             </NavLink>
           )
         })}
@@ -75,6 +88,7 @@ function NavBar({ isOpen, isMobile, isHidden }) {
                 className={`nav-dropdown-item ${location.pathname === "/order" ? "active" : ""}`}
                 role="menuitem"
                 aria-current={location.pathname === "/order" ? "page" : undefined}
+                onClick={(e) => e.stopPropagation()}
               >
                 <span className="material-icons nav-icon" aria-hidden="true">
                   receipt
@@ -86,6 +100,7 @@ function NavBar({ isOpen, isMobile, isHidden }) {
                 className={`nav-dropdown-item ${location.pathname === "/delivery" ? "active" : ""}`}
                 role="menuitem"
                 aria-current={location.pathname === "/delivery" ? "page" : undefined}
+                onClick={(e) => e.stopPropagation()}
               >
                 <span className="material-icons nav-icon" aria-hidden="true">
                   local_shipping
