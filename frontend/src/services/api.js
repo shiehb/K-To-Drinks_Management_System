@@ -55,7 +55,7 @@ api.interceptors.response.use(
         if (refreshToken) {
           // Use axios directly for refresh to avoid interceptors loop
           const response = await axios.post(
-            `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/token/refresh/`,
+            `${import.meta.env.VITE_API_URL || "https://k-to-drinks-management-system.onrender.com/api"}/token/refresh/`,
             { refresh: refreshToken },
             { withCredentials: true },
           )
@@ -103,7 +103,7 @@ export const authService = {
     try {
       // Use axios directly for login to avoid interceptors
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/token/`,
+        `${import.meta.env.VITE_API_URL || "https://k-to-drinks-management-system.onrender.com/api"}/token/`,
         credentials,
         {
           headers: {
@@ -126,7 +126,7 @@ export const authService = {
   refreshToken: async (refreshToken) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/token/refresh/`,
+        `${import.meta.env.VITE_API_URL || "https://k-to-drinks-management-system.onrender.com/api"}/token/refresh/`,
         { refresh: refreshToken },
         { withCredentials: true },
       )
@@ -142,7 +142,7 @@ export const authService = {
   verifyToken: async (token) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/token/verify/`,
+        `${import.meta.env.VITE_API_URL || "https://k-to-drinks-management-system.onrender.com/api"}/token/verify/`,
         { token },
         { withCredentials: true },
       )
