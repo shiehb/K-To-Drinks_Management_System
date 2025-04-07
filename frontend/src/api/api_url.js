@@ -128,7 +128,7 @@ api.interceptors.response.use(
 
         if (refreshToken) {
           const refreshResponse = await axios.post(
-            `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/token/refresh/`,
+            `${import.meta.env.VITE_API_URL || "https://k-to-drinks-management-system.onrender.com/api"}/token/refresh/`,
             { refresh: refreshToken },
           )
 
